@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import EventHubHero from "../components/EventHubHero";
 
 const tamilNaduDistricts = [
   "Ariyalur",
@@ -83,6 +82,12 @@ const eventTypeOptions = [
   { label: "CUSTOM EVENT", value: "CUSTOM EVENT" },
 ];
 
+const vendorImages = [
+  "/images/vendor-wedding.png",
+  "/images/vendor-corporate.png",
+  "/images/vendor-family.png",
+];
+
 function FilterDropdown({ label, options, value, isOpen, onToggle, onChange }) {
   const selectedOption =
     options.find((option) => option.value === value) || options[0];
@@ -97,7 +102,7 @@ function FilterDropdown({ label, options, value, isOpen, onToggle, onChange }) {
         onClick={onToggle}
       >
         <span>{selectedOption.label}</span>
-        <span aria-hidden="true">v</span>
+        <svg className="filter-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5" /></svg>
       </button>
 
       {isOpen && (
@@ -195,9 +200,21 @@ function VendorList() {
 
   return (
     <section>
-      <EventHubHero />
+      <header className="directory-page-header">
+        <span className="section-eyebrow">EventHub directory</span>
+        <h1>Find professionals for your celebration.</h1>
+        <p>Explore trusted event teams and narrow the results to exactly what you need.</p>
+      </header>
 
-      <section className="filter-controls" id="vendor-filters">
+      <div className="directory-heading" id="vendor-filters">
+        <div>
+          <span className="section-eyebrow">Handpicked for every celebration</span>
+          <h2>Find your event team</h2>
+        </div>
+        <p>Filter by location, cuisine, occasion, or availability.</p>
+      </div>
+
+      <section className="filter-controls" aria-label="Vendor filters">
         <FilterDropdown
           label="Filter vendors by district"
           options={districtOptions}
@@ -227,13 +244,16 @@ function VendorList() {
           onChange={(value) => handleDropdownChange(setEventTypeFilter, value)}
         />
 
-        <input
-          className="date-filter-input"
-          type="date"
-          aria-label="Filter vendors by available date"
-          value={availableDateFilter}
-          onChange={(event) => setAvailableDateFilter(event.target.value)}
-        />
+        <label className="date-filter-label">
+          <span className="sr-only">Available date</span>
+          <input
+            className="date-filter-input"
+            type="date"
+            aria-label="Filter vendors by available date"
+            value={availableDateFilter}
+            onChange={(event) => setAvailableDateFilter(event.target.value)}
+          />
+        </label>
       </section>
 
       {hasActiveFilter && (
@@ -247,7 +267,7 @@ function VendorList() {
       )}
 
       {!loading && !error && vendors.length > 0 && (
-        <p className="result-count">
+        <p className="result-count" aria-live="polite">
           Showing {vendors.length} {vendors.length === 1 ? "vendor" : "vendors"}
           {hasActiveFilter ? " for selected filters" : ""}
         </p>
@@ -287,8 +307,14 @@ function VendorList() {
               </div>
 
               <div className="vendor-card-visual">
-                <div className="vendor-card-grid" />
-                <span>{vendor.business_name.slice(0, 2).toUpperCase()}</span>
+                <img
+                  src={vendorImages[(vendor.id - 1) % vendorImages.length]}
+                  alt={`${vendor.business_name} event setup`}
+                  width="1536"
+                  height="1024"
+                  loading="lazy"
+                />
+                <span className="vendor-image-shade" aria-hidden="true" />
               </div>
 
               <h2>{vendor.business_name}</h2>

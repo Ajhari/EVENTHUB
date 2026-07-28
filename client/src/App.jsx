@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { BrowserRouter, Link, Route, Routes } from "react-router-dom";
 import Login from "./pages/Login";
+import Home from "./pages/Home";
 import MyInquiries from "./pages/MyInquiries";
 import Register from "./pages/Register";
 import VendorDashboard from "./pages/VendorDashboard";
@@ -40,10 +41,16 @@ function App() {
     <BrowserRouter>
       <main className="app">
         <nav className="navbar">
-          <Link className="brand-link" to="/vendors">EventHub</Link>
+          <Link className="brand-link" to="/" aria-label="EventHub home">
+            <span className="brand-mark" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M7 3v3M17 3v3M4 9h16M6 5h12a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/><path d="m8 14 2.2 2L16 11"/></svg>
+            </span>
+            <span>Event<span>Hub</span></span>
+          </Link>
 
           <div className="nav-links">
-            <Link to="/vendors">Vendors</Link>
+            <Link to="/">About</Link>
+            <Link to="/vendors">Explore vendors</Link>
 
             {user?.role === "customer" && (
               <Link to="/my-inquiries">My Inquiries</Link>
@@ -56,7 +63,7 @@ function App() {
             {!user && (
               <>
                 <Link to="/login">Login</Link>
-                <Link to="/register">Register</Link>
+                <Link className="nav-cta" to="/register">Join EventHub</Link>
               </>
             )}
 
@@ -72,7 +79,7 @@ function App() {
         </nav>
 
         <Routes>
-          <Route path="/" element={<VendorList />} />
+          <Route path="/" element={<Home />} />
           <Route path="/vendors" element={<VendorList />} />
           <Route path="/vendors/:id" element={<VendorDetail />} />
           <Route path="/my-inquiries" element={<MyInquiries />} />

@@ -2,11 +2,7 @@ const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
 
-const { Pool } = require("pg");
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
+const { pool } = require("./db");
 
 const app = express();
 
@@ -330,6 +326,8 @@ app.post("/api/vendor-services", async (req, res) => {
 });
 
 app.post("/api/vendor-services/range", async (req, res) => {
+  const client = await pool.connect();
+
   try {
     const { vendor_id, event_type, food_type, start_date, end_date } = req.body;
 
@@ -341,43 +339,43 @@ app.post("/api/vendor-services/range", async (req, res) => {
       return res.status(400).json({ message: "Start date cannot be after end date" });
     }
 
-    const result = await pool.query(
-      `WITH range_dates AS (
-         SELECT generate_series($4::date, $5::date, interval '1 day')::date AS available_date
-       ),
-       inserted_services AS (
-         INSERT INTO vendor_services (vendor_id, event_type, food_type, available_date)
-         SELECT $1, $2, $3, range_dates.available_date
-         FROM range_dates
-         WHERE NOT EXISTS (
-           SELECT 1
-           FROM inquiries
-           WHERE inquiries.vendor_id = $1
-           AND inquiries.event_date = range_dates.available_date
-         )
-         AND NOT EXISTS (
-           SELECT 1
-           FROM vendor_services
-           WHERE vendor_services.vendor_id = $1
-           AND vendor_services.event_type = $2
-           AND vendor_services.food_type = $3
-           AND vendor_services.available_date = range_dates.available_date
-         )
-         RETURNING *
-       )
-       SELECT *
-       FROM inserted_services
-       ORDER BY available_date ASC`,
-      [vendor_id, event_type, food_type, start_date, end_date]
-    );
+    await client.query("BEGIN");
+    const services = [];
+    const currentDate = new Date(`${start_date}T00:00:00Z`);
+    const finalDate = new Date(`${end_date}T00:00:00Z`);
+
+    while (currentDate <= finalDate) {
+      const availableDate = currentDate.toISOString().slice(0, 10);
+      const unavailable = await client.query(
+        `SELECT id FROM inquiries WHERE vendor_id = $1 AND event_date = $2
+         UNION
+         SELECT id FROM vendor_services
+         WHERE vendor_id = $1 AND event_type = $3 AND food_type = $4 AND available_date = $2`,
+        [vendor_id, availableDate, event_type, food_type]
+      );
+
+      if (unavailable.rows.length === 0) {
+        const inserted = await client.query(
+          `INSERT INTO vendor_services (vendor_id, event_type, food_type, available_date)
+           VALUES ($1, $2, $3, $4) RETURNING *`,
+          [vendor_id, event_type, food_type, availableDate]
+        );
+        services.push(inserted.rows[0]);
+      }
+      currentDate.setUTCDate(currentDate.getUTCDate() + 1);
+    }
+    await client.query("COMMIT");
 
     res.status(201).json({
-      message: `${result.rows.length} available dates saved`,
-      services: result.rows,
+      message: `${services.length} available dates saved`,
+      services,
     });
   } catch (error) {
+    await client.query("ROLLBACK");
     console.error("Error adding vendor service date range:", error);
     res.status(500).json({ message: "Server error" });
+  } finally {
+    client.release();
   }
 });
 
