@@ -1,5 +1,7 @@
 const express = require("express");
 const cors = require("cors");
+const bcrypt = require("bcrypt");
+const helmet = require("helmet");
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
 
@@ -7,7 +9,12 @@ const { initializeDatabase, pool } = require("./db");
 
 const app = express();
 
-app.use(cors());
+app.use(helmet());
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+  })
+);
 app.use(express.json());
 
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -857,11 +864,13 @@ app.post("/api/auth/register", async (req, res) => {
       return res.status(400).json({ message: "Invalid role" });
     }
 
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     const result = await pool.query(
       `INSERT INTO users (name, email, password_hash, role)
        VALUES ($1, $2, $3, $4)
        RETURNING id, name, email, role, created_at`,
-      [name, email, password, role]
+      [name, email, hashedPassword, role]
     );
 
     const user = result.rows[0];
@@ -895,17 +904,40 @@ app.post("/api/auth/login", async (req, res) => {
     }
 
     const result = await pool.query(
-      `SELECT id, name, email, role
+      `SELECT id, name, email, password_hash, role
        FROM users
-       WHERE email = $1 AND password_hash = $2`,
-      [email, password]
+       WHERE email = $1`,
+      [email]
     );
 
     if (result.rows.length === 0) {
       return res.status(401).json({ message: "Invalid email or password" });
     }
 
-    const user = result.rows[0];
+    const savedPassword = result.rows[0].password_hash;
+    const isBcryptHash = savedPassword.startsWith("$2");
+    const passwordMatches = isBcryptHash
+      ? await bcrypt.compare(password, savedPassword)
+      : password === savedPassword;
+
+    if (!passwordMatches) {
+      return res.status(401).json({ message: "Invalid email or password" });
+    }
+
+    if (!isBcryptHash) {
+      const upgradedPasswordHash = await bcrypt.hash(password, 10);
+      await pool.query(
+        "UPDATE users SET password_hash = $1 WHERE id = $2",
+        [upgradedPasswordHash, result.rows[0].id]
+      );
+    }
+
+    const user = {
+      id: result.rows[0].id,
+      name: result.rows[0].name,
+      email: result.rows[0].email,
+      role: result.rows[0].role,
+    };
 
     res.json({
       user,

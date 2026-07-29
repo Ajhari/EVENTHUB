@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 require("dotenv").config();
+const bcrypt = require("bcrypt");
 const { Pool } = require("pg");
 const seedVendors = require("./data/seed-vendors");
 
@@ -32,12 +33,13 @@ async function seedDemoVendors() {
 
     for (const [index, vendor] of seedVendors.entries()) {
       const [businessName, location, contact, description, price, foodType, eventType] = vendor;
+      const hashedDemoPassword = await bcrypt.hash("demo123", 10);
 
       const user = await client.query(
         `INSERT INTO users (name, email, password_hash, role)
          VALUES ($1, $2, $3, 'vendor')
          RETURNING id`,
-        [businessName, `demo.vendor${index + 1}@eventhub.local`, "demo123"]
+        [businessName, `demo.vendor${index + 1}@eventhub.local`, hashedDemoPassword]
       );
 
       await client.query(
