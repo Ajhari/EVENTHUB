@@ -10,7 +10,11 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const JWT_SECRET = process.env.JWT_SECRET || "eventhub-dev-secret-change-this";
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET) {
+  throw new Error("JWT_SECRET is missing in server/.env");
+}
 
 function createToken(user) {
   return jwt.sign(
