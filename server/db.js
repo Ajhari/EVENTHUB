@@ -2,7 +2,7 @@ const fs = require("fs");
 const path = require("path");
 require("dotenv").config();
 const { Pool } = require("pg");
-const demoVendors = require("./data/demo-vendors");
+const seedVendors = require("./data/seed-vendors");
 
 const databaseUrl = process.env.DATABASE_URL;
 
@@ -30,7 +30,7 @@ async function seedDemoVendors() {
   try {
     await client.query("BEGIN");
 
-    for (const [index, vendor] of demoVendors.entries()) {
+    for (const [index, vendor] of seedVendors.entries()) {
       const [businessName, location, contact, description, price, foodType, eventType] = vendor;
 
       const user = await client.query(

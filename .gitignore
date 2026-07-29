@@ -1,9 +1,6 @@
 .env
 client/.env
 server/.env
-server/data/*.db
-server/data/*.db-shm
-server/data/*.db-wal
 client/dist/
 client/node_modules/
 server/node_modules/
