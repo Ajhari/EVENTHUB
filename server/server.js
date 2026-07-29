@@ -1,13 +1,132 @@
 const express = require("express");
 const cors = require("cors");
+const jwt = require("jsonwebtoken");
 require("dotenv").config();
 
-const { pool } = require("./db");
+const { initializeDatabase, pool } = require("./db");
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+const JWT_SECRET = process.env.JWT_SECRET || "eventhub-dev-secret-change-this";
+
+function createToken(user) {
+  return jwt.sign(
+    { id: user.id, email: user.email, role: user.role, name: user.name },
+    JWT_SECRET,
+    { expiresIn: "7d" }
+  );
+}
+
+function authenticateToken(req, res, next) {
+  const authHeader = req.headers.authorization || "";
+  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+
+  if (!token) {
+    return res.status(401).json({ message: "Login token is required" });
+  }
+
+  try {
+    req.user = jwt.verify(token, JWT_SECRET);
+    return next();
+  } catch (error) {
+    return res.status(401).json({ message: "Invalid or expired token" });
+  }
+}
+
+function requireRole(role) {
+  return (req, res, next) => {
+    if (req.user.role !== role) {
+      return res.status(403).json({ message: "You do not have permission" });
+    }
+
+    return next();
+  };
+}
+
+function requireSameUserParam(paramName) {
+  return (req, res, next) => {
+    if (Number(req.params[paramName]) !== Number(req.user.id)) {
+      return res.status(403).json({ message: "You can only access your own data" });
+    }
+
+    return next();
+  };
+}
+
+async function requireVendorOwner(req, res, next) {
+  try {
+    const vendorId = Number(req.params.id || req.params.vendorId);
+    const result = await pool.query("SELECT user_id FROM vendors WHERE id = $1", [vendorId]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Vendor profile not found" });
+    }
+
+    if (Number(result.rows[0].user_id) !== Number(req.user.id)) {
+      return res.status(403).json({ message: "You can only manage your own vendor profile" });
+    }
+
+    return next();
+  } catch (error) {
+    console.error("Error checking vendor owner:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+}
+
+async function requireVendorBodyOwner(req, res, next) {
+  try {
+    const vendorId = Number(req.body.vendor_id);
+
+    if (!vendorId) {
+      return res.status(400).json({ message: "Vendor is required" });
+    }
+
+    const result = await pool.query("SELECT user_id FROM vendors WHERE id = $1", [vendorId]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Vendor profile not found" });
+    }
+
+    if (Number(result.rows[0].user_id) !== Number(req.user.id)) {
+      return res.status(403).json({ message: "You can only manage your own vendor profile" });
+    }
+
+    return next();
+  } catch (error) {
+    console.error("Error checking vendor owner:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+}
+
+async function requireInquiryVendorOwner(req, res, next) {
+  try {
+    const inquiryId = Number(req.params.id);
+
+    const result = await pool.query(
+      `SELECT vendors.user_id
+       FROM inquiries
+       JOIN vendors ON inquiries.vendor_id = vendors.id
+       WHERE inquiries.id = $1`,
+      [inquiryId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Inquiry not found" });
+    }
+
+    if (Number(result.rows[0].user_id) !== Number(req.user.id)) {
+      return res.status(403).json({ message: "You can only update inquiries for your vendor profile" });
+    }
+
+    return next();
+  } catch (error) {
+    console.error("Error checking inquiry owner:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+}
 
 function uppercaseText(value) {
   return typeof value === "string" ? value.toUpperCase() : value;
@@ -99,7 +218,7 @@ app.get("/api/vendors", async (req, res) => {
   }
 });
 
-app.get("/api/vendors/user/:userId", async (req, res) => {
+app.get("/api/vendors/user/:userId", authenticateToken, requireRole("vendor"), requireSameUserParam("userId"), async (req, res) => {
   try {
     const userId = Number(req.params.userId);
 
@@ -139,7 +258,7 @@ app.get("/api/vendors/:id", async (req, res) => {
   }
 });
 
-app.post("/api/vendors", async (req, res) => {
+app.post("/api/vendors", authenticateToken, requireRole("vendor"), async (req, res) => {
   try {
     const {
       user_id,
@@ -155,6 +274,10 @@ app.post("/api/vendors", async (req, res) => {
 
     if (!user_id || !business_name || !location) {
       return res.status(400).json({ message: "User, business name, and location are required" });
+    }
+
+    if (Number(user_id) !== Number(req.user.id)) {
+      return res.status(403).json({ message: "You can only create your own vendor profile" });
     }
 
     const digitsOnlyContact = contact_number ? contact_number.replace(/\D/g, "") : "";
@@ -204,7 +327,7 @@ app.post("/api/vendors", async (req, res) => {
   }
 });
 
-app.put("/api/vendors/:id", async (req, res) => {
+app.put("/api/vendors/:id", authenticateToken, requireRole("vendor"), requireVendorOwner, async (req, res) => {
   try {
     const vendorId = Number(req.params.id);
     const {
@@ -271,7 +394,7 @@ app.put("/api/vendors/:id", async (req, res) => {
   }
 });
 
-app.delete("/api/vendors/:id", async (req, res) => {
+app.delete("/api/vendors/:id", authenticateToken, requireRole("vendor"), requireVendorOwner, async (req, res) => {
   const client = await pool.connect();
 
   try {
@@ -280,6 +403,7 @@ app.delete("/api/vendors/:id", async (req, res) => {
     await client.query("BEGIN");
     await client.query("DELETE FROM vendor_services WHERE vendor_id = $1", [vendorId]);
     await client.query("DELETE FROM vendor_booked_dates WHERE vendor_id = $1", [vendorId]);
+    await client.query("DELETE FROM favorite_vendors WHERE vendor_id = $1", [vendorId]);
     await client.query("DELETE FROM inquiries WHERE vendor_id = $1", [vendorId]);
 
     const result = await client.query(
@@ -303,7 +427,92 @@ app.delete("/api/vendors/:id", async (req, res) => {
   }
 });
 
-app.post("/api/vendor-services", async (req, res) => {
+app.get("/api/favorites/:customerId", authenticateToken, requireRole("customer"), requireSameUserParam("customerId"), async (req, res) => {
+  try {
+    const customerId = Number(req.params.customerId);
+
+    const result = await pool.query(
+      `SELECT vendors.*, favorite_vendors.created_at AS favorited_at
+       FROM favorite_vendors
+       JOIN vendors ON favorite_vendors.vendor_id = vendors.id
+       WHERE favorite_vendors.customer_id = $1
+       ORDER BY favorite_vendors.created_at DESC`,
+      [customerId]
+    );
+
+    res.json(result.rows.map(formatVendor));
+  } catch (error) {
+    console.error("Error fetching favorite vendors:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+app.get("/api/favorites/:customerId/:vendorId", authenticateToken, requireRole("customer"), requireSameUserParam("customerId"), async (req, res) => {
+  try {
+    const customerId = Number(req.params.customerId);
+    const vendorId = Number(req.params.vendorId);
+
+    const result = await pool.query(
+      `SELECT id
+       FROM favorite_vendors
+       WHERE customer_id = $1 AND vendor_id = $2`,
+      [customerId, vendorId]
+    );
+
+    res.json({ is_favorite: result.rows.length > 0 });
+  } catch (error) {
+    console.error("Error checking favorite vendor:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+app.post("/api/favorites", authenticateToken, requireRole("customer"), async (req, res) => {
+  try {
+    const { customer_id, vendor_id } = req.body;
+
+    if (!customer_id || !vendor_id) {
+      return res.status(400).json({ message: "Customer and vendor are required" });
+    }
+
+    if (Number(customer_id) !== Number(req.user.id)) {
+      return res.status(403).json({ message: "You can only save your own favorites" });
+    }
+
+    await pool.query(
+      `INSERT INTO favorite_vendors (customer_id, vendor_id)
+       VALUES ($1, $2)
+       ON CONFLICT (customer_id, vendor_id) DO NOTHING`,
+      [customer_id, vendor_id]
+    );
+
+    res.status(201).json({
+      message: "Vendor added to favorites",
+    });
+  } catch (error) {
+    console.error("Error adding favorite vendor:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+app.delete("/api/favorites/:customerId/:vendorId", authenticateToken, requireRole("customer"), requireSameUserParam("customerId"), async (req, res) => {
+  try {
+    const customerId = Number(req.params.customerId);
+    const vendorId = Number(req.params.vendorId);
+
+    await pool.query(
+      `DELETE FROM favorite_vendors
+       WHERE customer_id = $1 AND vendor_id = $2`,
+      [customerId, vendorId]
+    );
+
+    res.json({ message: "Vendor removed from favorites" });
+  } catch (error) {
+    console.error("Error removing favorite vendor:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+app.post("/api/vendor-services", authenticateToken, requireRole("vendor"), requireVendorBodyOwner, async (req, res) => {
   try {
     const { vendor_id, event_type, food_type, available_date } = req.body;
 
@@ -325,7 +534,7 @@ app.post("/api/vendor-services", async (req, res) => {
   }
 });
 
-app.post("/api/vendor-services/range", async (req, res) => {
+app.post("/api/vendor-services/range", authenticateToken, requireRole("vendor"), requireVendorBodyOwner, async (req, res) => {
   const client = await pool.connect();
 
   try {
@@ -398,7 +607,7 @@ app.get("/api/vendor-services/:vendorId", async (req, res) => {
   }
 });
 
-app.get("/api/vendor-booked-dates/:vendorId", async (req, res) => {
+app.get("/api/vendor-booked-dates/:vendorId", authenticateToken, requireRole("vendor"), requireVendorOwner, async (req, res) => {
   try {
     const vendorId = Number(req.params.vendorId);
 
@@ -428,7 +637,7 @@ app.get("/api/vendor-booked-dates/:vendorId", async (req, res) => {
   }
 });
 
-app.put("/api/vendor-booked-dates/:vendorId", async (req, res) => {
+app.put("/api/vendor-booked-dates/:vendorId", authenticateToken, requireRole("vendor"), requireVendorOwner, async (req, res) => {
   const client = await pool.connect();
 
   try {
@@ -506,12 +715,16 @@ app.get("/api/vendor-availability/:vendorId", async (req, res) => {
   }
 });
 
-app.post("/api/inquiries", async (req, res) => {
+app.post("/api/inquiries", authenticateToken, requireRole("customer"), async (req, res) => {
   try {
     const { customer_id, vendor_id, event_date, message } = req.body;
 
     if (!customer_id || !vendor_id || !event_date || !message) {
       return res.status(400).json({ message: "All fields are required" });
+    }
+
+    if (Number(customer_id) !== Number(req.user.id)) {
+      return res.status(403).json({ message: "You can only send inquiries from your own account" });
     }
 
     if (message.trim().length < 10) {
@@ -547,7 +760,7 @@ app.post("/api/inquiries", async (req, res) => {
   }
 });
 
-app.get("/api/inquiries/vendor/:vendorId", async (req, res) => {
+app.get("/api/inquiries/vendor/:vendorId", authenticateToken, requireRole("vendor"), requireVendorOwner, async (req, res) => {
   try {
     const vendorId = Number(req.params.vendorId);
 
@@ -567,7 +780,7 @@ app.get("/api/inquiries/vendor/:vendorId", async (req, res) => {
   }
 });
 
-app.get("/api/inquiries/customer/:customerId", async (req, res) => {
+app.get("/api/inquiries/customer/:customerId", authenticateToken, requireRole("customer"), requireSameUserParam("customerId"), async (req, res) => {
   try {
     const customerId = Number(req.params.customerId);
 
@@ -587,7 +800,7 @@ app.get("/api/inquiries/customer/:customerId", async (req, res) => {
   }
 });
 
-app.put("/api/inquiries/:id/status", async (req, res) => {
+app.put("/api/inquiries/:id/status", authenticateToken, requireRole("vendor"), requireInquiryVendorOwner, async (req, res) => {
   try {
     const inquiryId = Number(req.params.id);
     const { status } = req.body;
@@ -621,7 +834,8 @@ app.put("/api/inquiries/:id/status", async (req, res) => {
 
 app.post("/api/auth/register", async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, password, role } = req.body;
+    const email = String(req.body.email || "").trim().toLowerCase();
 
     if (!name || !email || !password || !role) {
       return res.status(400).json({ message: "All fields are required" });
@@ -646,7 +860,12 @@ app.post("/api/auth/register", async (req, res) => {
       [name, email, password, role]
     );
 
-    res.status(201).json(result.rows[0]);
+    const user = result.rows[0];
+
+    res.status(201).json({
+      user,
+      token: createToken(user),
+    });
   } catch (error) {
     console.error("Error registering user:", error);
 
@@ -660,7 +879,8 @@ app.post("/api/auth/register", async (req, res) => {
 
 app.post("/api/auth/login", async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const email = String(req.body.email || "").trim().toLowerCase();
+    const password = String(req.body.password || "").trim();
 
     if (!email || !password) {
       return res.status(400).json({ message: "Email and password are required" });
@@ -681,7 +901,12 @@ app.post("/api/auth/login", async (req, res) => {
       return res.status(401).json({ message: "Invalid email or password" });
     }
 
-    res.json(result.rows[0]);
+    const user = result.rows[0];
+
+    res.json({
+      user,
+      token: createToken(user),
+    });
   } catch (error) {
     console.error("Error logging in:", error);
     res.status(500).json({ message: "Server error" });
@@ -690,6 +915,13 @@ app.post("/api/auth/login", async (req, res) => {
 
 const PORT = process.env.PORT || 3001;
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+initializeDatabase()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  })
+  .catch((error) => {
+    console.error("Database setup failed:", error.message);
+    process.exit(1);
+  });

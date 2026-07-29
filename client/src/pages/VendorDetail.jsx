@@ -1,5 +1,27 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { authHeaders } from "../utils/auth";
+
+const vendorImages = {
+  1: "/images/vendor-chennai-v2.jpg",
+  2: "/images/vendor-madurai-v2.jpg",
+  3: "/images/vendor-kovai-v2.jpg",
+  4: "/images/vendor-trichy-v2.jpg",
+  5: "/images/vendor-salem-v2.jpg",
+  6: "/images/vendor-nellai-v2.jpg",
+};
+
+function DetailIcon({ name }) {
+  const paths = {
+    arrow: <><path d="M19 12H5M11 18l-6-6 6-6" /></>,
+    calendar: <><path d="M5 4v3M19 4v3M4 9h16" /><rect x="4" y="6" width="16" height="14" rx="2" /></>,
+    map: <><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.5" /></>,
+    phone: <path d="M7 3H4.5A1.5 1.5 0 0 0 3 4.5C3 13.6 10.4 21 19.5 21a1.5 1.5 0 0 0 1.5-1.5V17l-4-1-1.2 2a15.7 15.7 0 0 1-9.8-9.8L8 7 7 3Z" />,
+    shield: <path d="M12 3 5 6v5c0 4.5 2.9 8.5 7 10 4.1-1.5 7-5.5 7-10V6l-7-3Zm-3 9 2 2 4-4" />,
+    sparkle: <><path d="m12 3 1.3 3.7L17 8l-3.7 1.3L12 13l-1.3-3.7L7 8l3.7-1.3L12 3Z" /><path d="m18 15 .8 2.2L21 18l-2.2.8L18 21l-.8-2.2L15 18l2.2-.8L18 15Z" /></>,
+  };
+  return <svg className="vendor-detail-icon" viewBox="0 0 24 24" aria-hidden="true">{paths[name]}</svg>;
+}
 
 function VendorDetail() {
   const { id } = useParams();
@@ -135,9 +157,9 @@ function VendorDetail() {
 
     fetch("http://localhost:3001/api/inquiries", {
       method: "POST",
-      headers: {
+      headers: authHeaders({
         "Content-Type": "application/json",
-      },
+      }),
       body: JSON.stringify({
         customer_id: user.id,
         vendor_id: Number(id),
@@ -169,7 +191,7 @@ function VendorDetail() {
   }
 
   if (loading) {
-    return <p>Loading vendor details...</p>;
+    return <div className="vendor-profile-loading" aria-busy="true"><span /><i /><i /></div>;
   }
 
   if (pageError) {
@@ -187,63 +209,78 @@ function VendorDetail() {
     year: "numeric",
   });
 
-  return (
-    <section>
-      <Link className="back-link" to="/vendors">
-        Back to vendors
-      </Link>
+  const heroImage = vendorImages[vendor.id] || "/images/eventhub-hero.png";
 
-      <div className="vendor-detail">
-        <h1>{vendor.business_name}</h1>
-        <p>
-          <strong>Location:</strong> {vendor.location}
-        </p>
-        <p>
-          <strong>Contact:</strong> {vendor.contact_number}
-        </p>
-        <p>
-          <strong>Price Range:</strong> {vendor.price_range}
-        </p>
-        <p>
-          <strong>Food Type:</strong> {vendor.food_type || "Not added"}
-        </p>
-        <p>
-          <strong>Event Type:</strong> {vendor.event_type || "Not added"}
-        </p>
-        <p>
-          <strong>Available Date:</strong>{" "}
-          {vendor.available_date
-            ? new Date(vendor.available_date).toLocaleDateString("en-IN")
-            : "Not added"}
-        </p>
-        <p>
-          <strong>Description:</strong> {vendor.description}
-        </p>
-        <form className="inquiry-form" onSubmit={handleInquirySubmit}>
-          <h2>Send Inquiry</h2>
+  return (
+    <section className="vendor-profile-page">
+      <Link className="vendor-profile-back" to="/vendors"><DetailIcon name="arrow" /> Back to all vendors</Link>
+
+      <header className="vendor-profile-hero">
+        <img src={heroImage} alt={`${vendor.business_name} event setup`} width="1536" height="1024" fetchPriority="high" />
+        <div className="vendor-profile-scrim" aria-hidden="true" />
+        <div className="vendor-profile-hero-content">
+          <p className="vendor-profile-verified"><DetailIcon name="shield" /> EventHub verified professional</p>
+          <h1>{vendor.business_name}</h1>
+          <p className="vendor-profile-location"><DetailIcon name="map" /> {vendor.location}</p>
+          <div className="vendor-profile-hero-tags">
+            <span>{vendor.event_type || "Custom events"}</span>
+            <span>{vendor.food_type || "Flexible catering"}</span>
+          </div>
+        </div>
+      </header>
+
+      <div className="vendor-profile-layout">
+        <main className="vendor-profile-main">
+          <section className="vendor-profile-overview">
+            <p className="section-eyebrow">About this team</p>
+            <h2>Celebrations planned with care.</h2>
+            <p>{vendor.description || `${vendor.business_name} provides professional event services across ${vendor.location}.`}</p>
+          </section>
+
+          <div className="vendor-profile-facts">
+            <article><DetailIcon name="sparkle" /><span>Speciality</span><strong>{vendor.event_type || "Custom events"}</strong></article>
+            <article><DetailIcon name="map" /><span>Service area</span><strong>{vendor.location}</strong></article>
+            <article><DetailIcon name="calendar" /><span>Next availability</span><strong>{vendor.available_date ? new Date(vendor.available_date).toLocaleDateString("en-IN") : "Ask vendor"}</strong></article>
+            <article><DetailIcon name="phone" /><span>Direct contact</span><strong>{vendor.contact_number || "On request"}</strong></article>
+          </div>
+
+          <section className="vendor-profile-price">
+            <div><p className="section-eyebrow">Typical investment</p><h2>{vendor.price_range || "Request a custom quote"}</h2></div>
+            <p>Final pricing depends on your date, guest count, venue, and selected services.</p>
+          </section>
+        </main>
+
+        <aside className="vendor-booking-panel" aria-labelledby="inquiry-title">
+          <form className="inquiry-form vendor-profile-inquiry" onSubmit={handleInquirySubmit}>
+            <div className="vendor-inquiry-heading">
+              <p className="section-eyebrow">Check availability</p>
+              <h2 id="inquiry-title">Start your inquiry</h2>
+              <p>Choose an open date and tell the team what you are planning.</p>
+            </div>
 
           <section className="availability-calendar customer-calendar">
             <div className="availability-calendar-header">
-              <h3>Select Event Date</h3>
-              <p>
-                Green dates are available. Red dates are already booked and
-                cannot be selected.
-              </p>
+              <h3>Select event date</h3>
+              <p>Available dates can be selected. Booked dates are unavailable.</p>
             </div>
 
             <div className="calendar-month-controls">
               <button
+                className="calendar-nav-button"
                 type="button"
                 onClick={() => changeCalendarMonth(-1)}
+                aria-label="Show previous month"
               >
-                Previous
+                <DetailIcon name="arrow" />
               </button>
               <strong>{calendarTitle}</strong>
               <button
+                className="calendar-nav-button"
                 type="button"
                 onClick={() => changeCalendarMonth(1)}
+                aria-label="Show next month"
               >
-                Next
+                <span className="calendar-next-icon"><DetailIcon name="arrow" /></span>
               </button>
             </div>
 
@@ -295,6 +332,7 @@ function VendorDetail() {
                     type="button"
                     key={dateValue}
                     onClick={() => setEventDate(dateValue)}
+                    aria-label={`Select ${date.toLocaleDateString("en-IN")}`}
                   >
                     {date.getDate()}
                   </button>
@@ -317,8 +355,9 @@ function VendorDetail() {
           </section>
 
           <label>
-            Message
+            Tell us about your event
             <textarea
+              placeholder="Event type, venue, guest count, and the services you need..."
               value={message}
               onChange={(event) => setMessage(event.target.value)}
               required
@@ -326,12 +365,14 @@ function VendorDetail() {
          </label>
 
          <button type="submit" disabled={submitting}>
-           {submitting ? "Sending..." : "Send Inquiry"}
+           {submitting ? "Sending inquiry..." : "Send inquiry"}
          </button>
 
          {success && <p className="success-message">{success}</p>}
          {formError && <p className="error-message">{formError}</p>}
-       </form>
+          </form>
+          <p className="vendor-booking-note"><DetailIcon name="shield" /> Your inquiry is sent securely through EventHub.</p>
+        </aside>
       </div>
     </section>
   );

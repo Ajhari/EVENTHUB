@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { authHeaders } from "../utils/auth";
 
 function VendorDashboard() {
   const [vendorProfile, setVendorProfile] = useState(null);
@@ -102,7 +103,9 @@ function VendorDashboard() {
       return;
     }
 
-    fetch(`http://localhost:3001/api/vendors/user/${user.id}`)
+    fetch(`http://localhost:3001/api/vendors/user/${user.id}`, {
+      headers: authHeaders(),
+    })
       .then((response) => {
         if (response.status === 404) {
           return null;
@@ -131,8 +134,12 @@ function VendorDashboard() {
         setAvailableDate(toDateInputValue(profile.available_date));
 
         return Promise.all([
-          fetch(`http://localhost:3001/api/inquiries/vendor/${profile.id}`),
-          fetch(`http://localhost:3001/api/vendor-booked-dates/${profile.id}`),
+          fetch(`http://localhost:3001/api/inquiries/vendor/${profile.id}`, {
+            headers: authHeaders(),
+          }),
+          fetch(`http://localhost:3001/api/vendor-booked-dates/${profile.id}`, {
+            headers: authHeaders(),
+          }),
         ]);
       })
       .then((responses) => {
@@ -212,9 +219,9 @@ function VendorDashboard() {
 
     fetch(url, {
       method,
-      headers: {
+      headers: authHeaders({
         "Content-Type": "application/json",
-      },
+      }),
       body: JSON.stringify(profileData),
     })
       .then(async (response) => {
@@ -268,6 +275,7 @@ function VendorDashboard() {
 
     fetch(`http://localhost:3001/api/vendors/${vendorProfile.id}`, {
       method: "DELETE",
+      headers: authHeaders(),
     })
       .then(async (response) => {
         const data = await response.json();
@@ -309,9 +317,9 @@ function VendorDashboard() {
 
     fetch(`http://localhost:3001/api/inquiries/${inquiryId}/status`, {
       method: "PUT",
-      headers: {
+      headers: authHeaders({
         "Content-Type": "application/json",
-      },
+      }),
       body: JSON.stringify({ status }),
     })
       .then((response) => {
@@ -388,9 +396,9 @@ function VendorDashboard() {
 
     fetch(`http://localhost:3001/api/vendor-booked-dates/${vendorProfile.id}`, {
       method: "PUT",
-      headers: {
+      headers: authHeaders({
         "Content-Type": "application/json",
-      },
+      }),
       body: JSON.stringify({
         booked_dates: manualBookedDates,
       }),

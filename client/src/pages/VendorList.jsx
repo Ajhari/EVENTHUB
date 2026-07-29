@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { authHeaders } from "../utils/auth";
 
 const tamilNaduDistricts = [
   "Ariyalur",
@@ -82,11 +83,90 @@ const eventTypeOptions = [
   { label: "CUSTOM EVENT", value: "CUSTOM EVENT" },
 ];
 
-const vendorImages = [
-  "/images/vendor-wedding.png",
-  "/images/vendor-corporate.png",
-  "/images/vendor-family.png",
-];
+const vendorImages = {
+  1: "/images/vendor-chennai-v2.jpg",
+  2: "/images/vendor-madurai-v2.jpg",
+  3: "/images/vendor-kovai-v2.jpg",
+  4: "/images/vendor-trichy-v2.jpg",
+  5: "/images/vendor-salem-v2.jpg",
+  6: "/images/vendor-nellai-v2.jpg",
+};
+
+function titleCase(value) {
+  if (!value) return value;
+  return value.toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function imageForVendor(vendor) {
+  return vendor.image_url || vendorImages[vendor.id] || "/images/eventhub-hero.png";
+}
+
+function CardIcon({ name }) {
+  const paths = {
+    arrow: <><path d="M7 17 17 7" /><path d="M7 7h10v10" /></>,
+    calendar: <><path d="M5 4v3M19 4v3M4 9h16" /><rect x="4" y="6" width="16" height="14" rx="2" /></>,
+    map: <><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.5" /></>,
+    service: <><path d="M12 3v18M5.5 6.5h10a3.5 3.5 0 0 1 0 7h-7a3.5 3.5 0 0 0 0 7h10" /></>,
+  };
+
+  return <svg className="vendor-inline-icon" viewBox="0 0 24 24" aria-hidden="true">{paths[name]}</svg>;
+}
+
+function VendorCard({ vendor, isFavorite, isSavingFavorite, onFavoriteToggle }) {
+  const eventType = titleCase(vendor.event_type) || "Custom Events";
+  const availableDate = vendor.available_date
+    ? new Date(vendor.available_date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
+    : "Contact for availability";
+
+  return (
+    <Link className="vendor-card vendor-destination-card" to={`/vendors/${vendor.id}`}>
+      <div className="vendor-destination-image-wrap">
+        <img
+          className="vendor-destination-image"
+          src={imageForVendor(vendor)}
+          alt={`${titleCase(vendor.business_name)} event setup`}
+          loading="lazy"
+          sizes="(max-width: 700px) 100vw, (max-width: 1080px) 50vw, 34vw"
+          width="1536"
+          height="1024"
+        />
+        <span className="vendor-service-badge"><CardIcon name="calendar" /> {eventType}</span>
+        <span className="vendor-destination-arrow"><CardIcon name="arrow" /></span>
+      </div>
+
+      <div className="vendor-destination-content">
+        <button
+          className={isFavorite ? "card-save-button card-save-button-active" : "card-save-button"}
+          type="button"
+          disabled={isSavingFavorite}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            onFavoriteToggle(vendor.id);
+          }}
+        >
+          {isSavingFavorite ? "Saving..." : isFavorite ? "Saved" : "Save"}
+        </button>
+
+        <div className="vendor-destination-meta">
+          <span>EventHub verified</span>
+          <span>{titleCase(vendor.food_type) || "Flexible catering"}</span>
+        </div>
+        <h2>{titleCase(vendor.business_name)}</h2>
+        <p className="vendor-destination-location"><CardIcon name="map" /> Serving · {titleCase(vendor.location)}</p>
+        <p className="vendor-destination-description">
+          {vendor.description ? titleCase(vendor.description) : `Professional support for ${eventType.toLowerCase()} in ${titleCase(vendor.location)}.`}
+        </p>
+
+        <div className="vendor-service-estimate">
+          <span><CardIcon name="service" /> {eventType}</span>
+          <strong>{vendor.price_range || "Custom quote"}</strong>
+          <small>{availableDate} · {vendor.contact_number || "Contact details available"}</small>
+        </div>
+      </div>
+    </Link>
+  );
+}
 
 function FilterDropdown({ label, options, value, isOpen, onToggle, onChange }) {
   const selectedOption =
@@ -138,6 +218,11 @@ function VendorList() {
   const [eventTypeFilter, setEventTypeFilter] = useState("");
   const [availableDateFilter, setAvailableDateFilter] = useState("");
   const [openFilter, setOpenFilter] = useState("");
+  const [favoriteVendorIds, setFavoriteVendorIds] = useState([]);
+  const [savingFavoriteId, setSavingFavoriteId] = useState(null);
+  const [favoriteError, setFavoriteError] = useState("");
+  const savedUser = localStorage.getItem("eventhubUser");
+  const user = savedUser ? JSON.parse(savedUser) : null;
 
   useEffect(() => {
     setLoading(true);
@@ -182,6 +267,30 @@ function VendorList() {
       });
   }, [locationFilter, foodTypeFilter, eventTypeFilter, availableDateFilter]);
 
+  useEffect(() => {
+    if (!user || user.role !== "customer") {
+      setFavoriteVendorIds([]);
+      return;
+    }
+
+    fetch(`http://localhost:3001/api/favorites/${user.id}`, {
+      headers: authHeaders(),
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Failed to fetch favorites");
+        }
+
+        return response.json();
+      })
+      .then((data) => {
+        setFavoriteVendorIds(data.map((vendor) => vendor.id));
+      })
+      .catch((error) => {
+        console.error("Error fetching favorites:", error);
+      });
+  }, [savedUser]);
+
   const hasActiveFilter =
     locationFilter || foodTypeFilter || eventTypeFilter || availableDateFilter;
 
@@ -198,8 +307,71 @@ function VendorList() {
     setOpenFilter("");
   }
 
+  function handleFavoriteToggle(vendorId) {
+    setFavoriteError("");
+
+    if (!user) {
+      setFavoriteError("Please login as customer to save vendors.");
+      return;
+    }
+
+    if (user.role !== "customer") {
+      setFavoriteError("Only customers can save favorite vendors.");
+      return;
+    }
+
+    const isFavorite = favoriteVendorIds.includes(vendorId);
+    const url = isFavorite
+      ? `http://localhost:3001/api/favorites/${user.id}/${vendorId}`
+      : "http://localhost:3001/api/favorites";
+
+    const requestOptions = isFavorite
+      ? {
+          method: "DELETE",
+          headers: authHeaders(),
+        }
+      : {
+          method: "POST",
+          headers: authHeaders({
+            "Content-Type": "application/json",
+          }),
+          body: JSON.stringify({
+            customer_id: user.id,
+            vendor_id: vendorId,
+          }),
+        };
+
+    setSavingFavoriteId(vendorId);
+
+    fetch(url, requestOptions)
+      .then(async (response) => {
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to update favorite");
+        }
+
+        return data;
+      })
+      .then(() => {
+        setFavoriteVendorIds((currentIds) => {
+          if (isFavorite) {
+            return currentIds.filter((id) => id !== vendorId);
+          }
+
+          return [...currentIds, vendorId];
+        });
+        setSavingFavoriteId(null);
+      })
+      .catch((error) => {
+        console.error("Error updating favorite:", error);
+        setFavoriteError(error.message);
+        setSavingFavoriteId(null);
+      });
+  }
+
   return (
-    <section>
+    <section className="vendor-directory-page">
       <header className="directory-page-header">
         <span className="section-eyebrow">EventHub directory</span>
         <h1>Find professionals for your celebration.</h1>
@@ -273,9 +445,14 @@ function VendorList() {
         </p>
       )}
 
-      {loading && <p>Loading vendors...</p>}
+      {loading && (
+        <div className="vendor-list vendor-skeleton-list" aria-label="Loading vendors" aria-busy="true">
+          {[1, 2, 3].map((item) => <div className="vendor-skeleton" key={item}><span /><i /><i /><i /></div>)}
+        </div>
+      )}
 
       {error && <p className="error-message">{error}</p>}
+      {favoriteError && <p className="error-message">{favoriteError}</p>}
 
       {!loading && !error && !hasActiveFilter && vendors.length === 0 && (
         <p>No vendors available yet.</p>
@@ -288,77 +465,13 @@ function VendorList() {
       {!loading && !error && (
         <section className="vendor-list">
           {vendors.map((vendor) => (
-            <Link
-              className="vendor-card"
+            <VendorCard
+              vendor={vendor}
               key={vendor.id}
-              to={`/vendors/${vendor.id}`}
-            >
-              <div className="vendor-card-top">
-                <span className="vendor-card-icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" role="img">
-                    <path d="M4 10.4V4a1 1 0 0 1 1-1h5V1h4v2h5a1 1 0 0 1 1 1v6.4l1.086.326a1 1 0 0 1 .682 1.2l-1.516 6.068A4.992 4.992 0 0 1 16 16a4.992 4.992 0 0 1-4 2 4.992 4.992 0 0 1-4-2 4.992 4.992 0 0 1-4.252 1.994l-1.516-6.068a1 1 0 0 1 .682-1.2L4 10.4Zm2-.6L12 8l6 1.8V5H6v4.8ZM4 20a5.978 5.978 0 0 0 4-1.528A5.978 5.978 0 0 0 12 20a5.978 5.978 0 0 0 4-1.528A5.978 5.978 0 0 0 20 20h2v2h-2a7.963 7.963 0 0 1-4-1.07A7.963 7.963 0 0 1 12 22a7.963 7.963 0 0 1-4-1.07A7.963 7.963 0 0 1 4 22H2v-2h2Z" />
-                  </svg>
-                </span>
-                <span className="vendor-card-arrow" aria-hidden="true">
-                  <svg viewBox="0 0 24 24">
-                    <path d="M7 17 17 7M7 7h10v10" />
-                  </svg>
-                </span>
-              </div>
-
-              <div className="vendor-card-visual">
-                <img
-                  src={vendorImages[(vendor.id - 1) % vendorImages.length]}
-                  alt={`${vendor.business_name} event setup`}
-                  width="1536"
-                  height="1024"
-                  loading="lazy"
-                />
-                <span className="vendor-image-shade" aria-hidden="true" />
-              </div>
-
-              <h2>{vendor.business_name}</h2>
-
-              <div className="vendor-card-details">
-                <p>
-                  <strong>Location</strong>
-                  <span>{vendor.location}</span>
-                </p>
-                <p>
-                  <strong>Contact</strong>
-                  <span>{vendor.contact_number || "Not added"}</span>
-                </p>
-                <p>
-                  <strong>Price Range</strong>
-                  <span>{vendor.price_range || "Not added"}</span>
-                </p>
-                <p>
-                  <strong>Food Type</strong>
-                  <span>{vendor.food_type || "Not added"}</span>
-                </p>
-                <p>
-                  <strong>Event Type</strong>
-                  <span>{vendor.event_type || "Not added"}</span>
-                </p>
-                <p>
-                  <strong>Available Date</strong>
-                  <span>
-                    {vendor.available_date
-                      ? new Date(vendor.available_date).toLocaleDateString("en-IN")
-                      : "Not added"}
-                  </span>
-                </p>
-              </div>
-
-              {vendor.description && (
-                <p className="vendor-description">{vendor.description}</p>
-              )}
-
-              <div className="vendor-card-footer">
-                <span className="vendor-tag">Available</span>
-                <span className="vendor-card-link">View details</span>
-              </div>
-            </Link>
+              isFavorite={favoriteVendorIds.includes(vendor.id)}
+              isSavingFavorite={savingFavoriteId === vendor.id}
+              onFavoriteToggle={handleFavoriteToggle}
+            />
           ))}
         </section>
       )}
