@@ -1,22 +1,16 @@
-export function getAuthToken() {
-  return localStorage.getItem("eventhubToken");
+export function authHeaders(extraHeaders = {}) {
+  return extraHeaders;
 }
 
-export function authHeaders(extraHeaders = {}) {
-  const token = getAuthToken();
-
-  if (!token) {
-    return extraHeaders;
-  }
-
+export function authOptions(extraOptions = {}) {
   return {
-    ...extraHeaders,
-    Authorization: `Bearer ${token}`,
+    ...extraOptions,
+    credentials: "include",
+    headers: authHeaders(extraOptions.headers || {}),
   };
 }
 
 export function clearSavedAuth() {
   localStorage.removeItem("eventhubUser");
-  localStorage.removeItem("eventhubToken");
   window.dispatchEvent(new Event("eventhub-auth-change"));
 }

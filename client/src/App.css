@@ -802,6 +802,373 @@ section > h1 + p {
   resize: vertical;
 }
 
+.vendor-image-upload-field input[type="file"] {
+  min-height: auto;
+  padding: 12px;
+  background: #f8fafc;
+  cursor: pointer;
+}
+
+.vendor-image-upload-field span {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.vendor-image-preview {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: #e2e8f0;
+}
+
+.vendor-image-preview img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.vendor-image-preview .delete-vendor-image-button {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  min-height: 40px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: #dc2626;
+  box-shadow: 0 12px 22px rgba(15, 23, 42, 0.2);
+}
+
+.vendor-image-preview .delete-vendor-image-button:hover {
+  background: #b91c1c;
+}
+
+.vendor-dashboard-page {
+  position: relative;
+  isolation: isolate;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: clamp(28px, 5vw, 56px) 18px;
+}
+
+.vendor-dashboard-page::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0 0 auto;
+  height: 380px;
+  border-radius: 0 0 48px 48px;
+  background:
+    radial-gradient(circle at 18% 10%, rgba(14, 116, 144, 0.22), transparent 34%),
+    radial-gradient(circle at 78% 12%, rgba(30, 64, 175, 0.18), transparent 32%),
+    linear-gradient(180deg, rgba(15, 23, 42, 0.08), transparent);
+  pointer-events: none;
+}
+
+.vendor-dashboard-hero {
+  max-width: 760px;
+  margin: 0 auto 28px;
+  text-align: center;
+}
+
+.vendor-dashboard-mark {
+  display: grid;
+  width: 54px;
+  height: 54px;
+  margin: 0 auto 14px;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 18px;
+  color: white;
+  font-size: 18px;
+  font-weight: 900;
+  background: linear-gradient(145deg, #0f172a, #155e75);
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.22);
+}
+
+.vendor-dashboard-hero h1 {
+  margin: 6px 0 8px;
+  color: #0f172a;
+  font-size: clamp(42px, 7vw, 78px);
+  line-height: 0.95;
+}
+
+.vendor-dashboard-hero p {
+  max-width: 620px;
+  margin: 0 auto;
+  color: #53627a;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.vendor-dashboard-form,
+.vendor-inquiry-panel {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(203, 213, 225, 0.8);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(248, 250, 252, 0.9)),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0));
+  box-shadow: 0 26px 70px rgba(15, 23, 42, 0.12);
+  backdrop-filter: blur(18px);
+}
+
+.vendor-dashboard-form::before,
+.vendor-inquiry-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.35;
+  pointer-events: none;
+  background-image:
+    linear-gradient(135deg, rgba(15, 23, 42, 0.08) 0.5px, transparent 0.5px),
+    linear-gradient(45deg, rgba(15, 23, 42, 0.05) 0.5px, transparent 0.5px);
+  background-size: 32px 32px;
+}
+
+.vendor-dashboard-form::after,
+.vendor-inquiry-panel::after {
+  content: "";
+  position: absolute;
+  top: -2px;
+  left: -45%;
+  width: 42%;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, rgba(14, 116, 144, 0.85), transparent);
+  animation: dashboardLightBeam 4.2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.vendor-dashboard-form > *,
+.vendor-inquiry-panel > * {
+  position: relative;
+  z-index: 1;
+}
+
+.dashboard-form-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.dashboard-form-header h2 {
+  margin: 4px 0 0;
+  color: #0f172a;
+  font-size: clamp(22px, 3vw, 31px);
+  line-height: 1.15;
+}
+
+.dashboard-status-pill {
+  flex: 0 0 auto;
+  padding: 9px 12px;
+  border: 1px solid rgba(14, 116, 144, 0.22);
+  border-radius: 999px;
+  color: #0f4f63;
+  font-size: 12px;
+  font-weight: 900;
+  background: rgba(236, 253, 245, 0.72);
+}
+
+.vendor-dashboard-form input,
+.vendor-dashboard-form select,
+.vendor-dashboard-form textarea,
+.vendor-inquiry-panel select {
+  background: rgba(255, 255, 255, 0.84);
+}
+
+.vendor-inquiry-panel {
+  max-width: 940px;
+  margin: 34px auto 0;
+  padding: clamp(18px, 3vw, 28px);
+  border-radius: 22px;
+}
+
+.vendor-dashboard-form {
+  border-color: rgba(255, 255, 255, 0.12);
+  background:
+    linear-gradient(145deg, rgba(15, 23, 42, 0.94), rgba(13, 50, 63, 0.92)),
+    radial-gradient(circle at 50% -10%, rgba(34, 211, 238, 0.18), transparent 34%);
+  color: white;
+  box-shadow: 0 32px 90px rgba(15, 23, 42, 0.28);
+}
+
+.vendor-dashboard-form::before {
+  opacity: 0.14;
+  background-image:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.38) 0.5px, transparent 0.5px),
+    linear-gradient(45deg, rgba(255, 255, 255, 0.18) 0.5px, transparent 0.5px);
+  background-size: 30px 30px;
+}
+
+.vendor-dashboard-form::after {
+  height: 4px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.92), rgba(34, 211, 238, 0.82), transparent);
+  filter: blur(0.5px);
+}
+
+.vendor-dashboard-form .section-eyebrow {
+  color: #67e8f9;
+}
+
+.vendor-dashboard-form .dashboard-form-header h2,
+.vendor-dashboard-form label {
+  color: white;
+}
+
+.vendor-dashboard-form .dashboard-status-pill {
+  border-color: rgba(103, 232, 249, 0.32);
+  color: #cffafe;
+  background: rgba(8, 47, 73, 0.72);
+}
+
+.vendor-dashboard-form input,
+.vendor-dashboard-form select,
+.vendor-dashboard-form textarea {
+  border-color: rgba(255, 255, 255, 0.14);
+  color: white;
+  background: rgba(255, 255, 255, 0.07);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.vendor-dashboard-form input::placeholder,
+.vendor-dashboard-form textarea::placeholder {
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.vendor-dashboard-form input:focus,
+.vendor-dashboard-form select:focus,
+.vendor-dashboard-form textarea:focus {
+  border-color: rgba(103, 232, 249, 0.58);
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 0 4px rgba(34, 211, 238, 0.12);
+}
+
+.vendor-dashboard-form select option {
+  color: #0f172a;
+  background: white;
+}
+
+.vendor-dashboard-form .vendor-image-upload-field span,
+.vendor-dashboard-form .register-password-help,
+.vendor-dashboard-form .selected-date-message {
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.vendor-dashboard-form .vendor-image-upload-field input[type="file"] {
+  border-style: dashed;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.vendor-dashboard-form button[type="submit"] {
+  color: #082f49;
+  background: #ffffff;
+}
+
+.vendor-dashboard-form button[type="submit"]:hover {
+  background: #cffafe;
+}
+
+.vendor-dashboard-form .delete-profile-button {
+  color: white;
+  background: #dc2626;
+}
+
+.vendor-dashboard-form .delete-profile-button:hover {
+  background: #b91c1c;
+}
+
+.vendor-dashboard-page .vendor-inquiry-panel {
+  border-color: rgba(255, 255, 255, 0.12);
+  color: white;
+  background:
+    linear-gradient(145deg, rgba(15, 23, 42, 0.96), rgba(8, 47, 73, 0.92)),
+    radial-gradient(circle at 80% 0%, rgba(34, 211, 238, 0.14), transparent 30%);
+  box-shadow: 0 32px 90px rgba(15, 23, 42, 0.28);
+}
+
+.vendor-dashboard-page .vendor-inquiry-panel::before {
+  opacity: 0.13;
+  background-image:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.35) 0.5px, transparent 0.5px),
+    linear-gradient(45deg, rgba(255, 255, 255, 0.16) 0.5px, transparent 0.5px);
+}
+
+.vendor-dashboard-page .vendor-inquiry-panel .section-eyebrow,
+.vendor-dashboard-page .vendor-inquiry-panel .result-count {
+  color: #67e8f9;
+}
+
+.vendor-dashboard-page .vendor-inquiry-panel h2,
+.vendor-dashboard-page .vendor-inquiry-panel p,
+.vendor-dashboard-page .vendor-inquiry-panel label,
+.vendor-dashboard-page .vendor-inquiry-panel strong {
+  color: white;
+}
+
+.vendor-dashboard-page .vendor-inquiry-panel .dashboard-status-pill {
+  border-color: rgba(103, 232, 249, 0.32);
+  color: #cffafe;
+  background: rgba(8, 47, 73, 0.72);
+}
+
+.vendor-dashboard-page .vendor-inquiry-panel select {
+  border-color: rgba(255, 255, 255, 0.16);
+  color: white;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.vendor-dashboard-page .vendor-inquiry-panel select option {
+  color: #0f172a;
+  background: white;
+}
+
+.vendor-dashboard-page .vendor-inquiry-panel .inquiry-card {
+  border-color: rgba(255, 255, 255, 0.14);
+  color: white;
+  background: rgba(255, 255, 255, 0.07);
+  box-shadow: 0 20px 44px rgba(2, 6, 23, 0.22);
+}
+
+.vendor-dashboard-page .vendor-inquiry-panel .inquiry-card h2,
+.vendor-dashboard-page .vendor-inquiry-panel .inquiry-card p,
+.vendor-dashboard-page .vendor-inquiry-panel .inquiry-card span {
+  color: white;
+}
+
+.vendor-dashboard-page .vendor-inquiry-panel .inquiry-card p {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+@keyframes dashboardLightBeam {
+  0% {
+    left: -45%;
+    opacity: 0.2;
+  }
+  45% {
+    opacity: 0.85;
+  }
+  100% {
+    left: 105%;
+    opacity: 0.2;
+  }
+}
+
+@media (max-width: 680px) {
+  .dashboard-form-header {
+    display: grid;
+  }
+
+  .dashboard-status-pill {
+    justify-self: start;
+  }
+}
+
 .auth-form button,
 .profile-form button,
 .service-form button,
@@ -1687,3 +2054,56 @@ button,a { cursor: pointer; touch-action: manipulation; }
   .vendor-profile-price { align-items: flex-start; flex-direction: column; gap: 18px; }.vendor-profile-price > p { max-width: none; }.vendor-inquiry-heading h2 { font-size: 27px; }
 }
 @media (max-width: 390px) { .vendor-booking-panel { padding-inline: 14px; }.vendor-profile-inquiry .availability-calendar { padding-inline: 9px; }.vendor-profile-inquiry .calendar-day { min-height: 35px; }.vendor-profile-hero h1 { font-size: 45px; } }
+
+/* Vendor dashboard inquiry desk dark polish */
+.vendor-dashboard-page .vendor-inquiry-panel {
+  border-color: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  background:
+    radial-gradient(circle at 82% 0%, rgba(103, 232, 249, 0.13), transparent 34%),
+    linear-gradient(145deg, #020617 0%, #0f172a 52%, #082f49 100%);
+  box-shadow: 0 32px 90px rgba(2, 6, 23, 0.28);
+}
+
+.vendor-dashboard-page .vendor-inquiry-panel .section-eyebrow,
+.vendor-dashboard-page .vendor-inquiry-panel .result-count,
+.vendor-dashboard-page .vendor-inquiry-panel h2,
+.vendor-dashboard-page .vendor-inquiry-panel h3,
+.vendor-dashboard-page .vendor-inquiry-panel p,
+.vendor-dashboard-page .vendor-inquiry-panel label,
+.vendor-dashboard-page .vendor-inquiry-panel strong {
+  color: #ffffff;
+}
+
+.vendor-dashboard-page .vendor-inquiry-panel .dashboard-status-pill {
+  border-color: rgba(103, 232, 249, 0.34);
+  color: #ffffff;
+  background: rgba(8, 47, 73, 0.82);
+}
+
+.vendor-dashboard-page .vendor-inquiry-panel .dashboard-filter select,
+.vendor-dashboard-page .vendor-inquiry-panel .status-field select {
+  border-color: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.vendor-dashboard-page .vendor-inquiry-panel .dashboard-filter select option,
+.vendor-dashboard-page .vendor-inquiry-panel .status-field select option {
+  color: #0f172a;
+  background: #ffffff;
+}
+
+.vendor-dashboard-page .vendor-inquiry-panel .inquiry-card {
+  border-color: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 20px 44px rgba(2, 6, 23, 0.24);
+}
+
+.vendor-dashboard-page .vendor-inquiry-panel .inquiry-card h2,
+.vendor-dashboard-page .vendor-inquiry-panel .inquiry-card p,
+.vendor-dashboard-page .vendor-inquiry-panel .inquiry-card span,
+.vendor-dashboard-page .vendor-inquiry-panel .inquiry-card strong {
+  color: #ffffff;
+}

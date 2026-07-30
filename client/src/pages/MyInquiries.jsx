@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { authHeaders } from "../utils/auth";
+import { authOptions } from "../utils/auth";
 
 function MyInquiries() {
   const [inquiries, setInquiries] = useState([]);
@@ -21,9 +21,7 @@ function MyInquiries() {
       return;
     }
 
-    fetch(`http://localhost:3001/api/inquiries/customer/${user.id}`, {
-      headers: authHeaders(),
-    })
+    fetch(`http://localhost:3001/api/inquiries/customer/${user.id}`, authOptions())
       .then((response) => {
         if (!response.ok) {
           throw new Error("Failed to fetch customer inquiries");

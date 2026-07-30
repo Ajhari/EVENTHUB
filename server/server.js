@@ -1,8 +1,13 @@
 const express = require("express");
 const cors = require("cors");
 const bcrypt = require("bcrypt");
+const cookieParser = require("cookie-parser");
+const fs = require("fs");
 const helmet = require("helmet");
 const jwt = require("jsonwebtoken");
+const multer = require("multer");
+const path = require("path");
+const rateLimit = require("express-rate-limit");
 require("dotenv").config();
 
 const { initializeDatabase, pool } = require("./db");
@@ -13,15 +18,85 @@ app.use(helmet());
 app.use(
   cors({
     origin: "http://localhost:5173",
+    credentials: true,
   })
 );
+app.use(cookieParser());
 app.use(express.json());
+
+const uploadsDir = path.join(__dirname, "uploads", "vendor-images");
+fs.mkdirSync(uploadsDir, { recursive: true });
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: uploadsDir,
+    filename: (req, file, cb) => {
+      const safeExtension = path.extname(file.originalname).toLowerCase();
+      const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1e9)}${safeExtension}`;
+      cb(null, uniqueName);
+    },
+  }),
+  limits: {
+    fileSize: 5 * 1024 * 1024,
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+
+    if (!allowedTypes.includes(file.mimetype)) {
+      return cb(new Error("Only JPG, PNG, and WebP images are allowed"));
+    }
+
+    return cb(null, true);
+  },
+});
+
+function uploadVendorImage(req, res, next) {
+  upload.single("vendor_image")(req, res, (error) => {
+    if (error) {
+      return res.status(400).json({ message: error.message });
+    }
+
+    return next();
+  });
+}
+
+function deleteUploadedVendorImage(imagePath) {
+  if (!imagePath || !imagePath.startsWith("/uploads/vendor-images/")) {
+    return;
+  }
+
+  const imageFileName = path.basename(imagePath);
+  const imageFilePath = path.join(uploadsDir, imageFileName);
+
+  fs.unlink(imageFilePath, (error) => {
+    if (error && error.code !== "ENOENT") {
+      console.error("Error deleting vendor image file:", error);
+    }
+  });
+}
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many login attempts. Please try again later." },
+});
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
 if (!JWT_SECRET) {
   throw new Error("JWT_SECRET is missing in server/.env");
 }
+
+const isProduction = process.env.NODE_ENV === "production";
+const authCookieOptions = {
+  httpOnly: true,
+  sameSite: isProduction ? "none" : "lax",
+  secure: isProduction,
+  maxAge: 7 * 24 * 60 * 60 * 1000,
+};
 
 function createToken(user) {
   return jwt.sign(
@@ -33,7 +108,8 @@ function createToken(user) {
 
 function authenticateToken(req, res, next) {
   const authHeader = req.headers.authorization || "";
-  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+  const headerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+  const token = req.cookies.eventhubToken || headerToken;
 
   if (!token) {
     return res.status(401).json({ message: "Login token is required" });
@@ -269,7 +345,7 @@ app.get("/api/vendors/:id", async (req, res) => {
   }
 });
 
-app.post("/api/vendors", authenticateToken, requireRole("vendor"), async (req, res) => {
+app.post("/api/vendors", authenticateToken, requireRole("vendor"), uploadVendorImage, async (req, res) => {
   try {
     const {
       user_id,
@@ -293,6 +369,7 @@ app.post("/api/vendors", authenticateToken, requireRole("vendor"), async (req, r
 
     const digitsOnlyContact = contact_number ? contact_number.replace(/\D/g, "") : "";
     const profileAvailableDate = available_date || null;
+    const uploadedImagePath = req.file ? `/uploads/vendor-images/${req.file.filename}` : null;
     const normalizedBusinessName = uppercaseText(business_name);
     const normalizedLocation = uppercaseText(location);
     const normalizedDescription = uppercaseText(description);
@@ -314,9 +391,10 @@ app.post("/api/vendors", authenticateToken, requireRole("vendor"), async (req, r
         price_range,
         food_type,
         event_type,
-        available_date
+        available_date,
+        image_url
       )
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        RETURNING *`,
       [
         user_id,
@@ -328,6 +406,7 @@ app.post("/api/vendors", authenticateToken, requireRole("vendor"), async (req, r
         normalizedFoodType,
         normalizedEventType,
         profileAvailableDate,
+        uploadedImagePath,
       ]
     );
 
@@ -338,7 +417,7 @@ app.post("/api/vendors", authenticateToken, requireRole("vendor"), async (req, r
   }
 });
 
-app.put("/api/vendors/:id", authenticateToken, requireRole("vendor"), requireVendorOwner, async (req, res) => {
+app.put("/api/vendors/:id", authenticateToken, requireRole("vendor"), requireVendorOwner, uploadVendorImage, async (req, res) => {
   try {
     const vendorId = Number(req.params.id);
     const {
@@ -358,6 +437,7 @@ app.put("/api/vendors/:id", authenticateToken, requireRole("vendor"), requireVen
 
     const digitsOnlyContact = contact_number ? contact_number.replace(/\D/g, "") : "";
     const profileAvailableDate = available_date || null;
+    const uploadedImagePath = req.file ? `/uploads/vendor-images/${req.file.filename}` : null;
     const normalizedBusinessName = uppercaseText(business_name);
     const normalizedLocation = uppercaseText(location);
     const normalizedDescription = uppercaseText(description);
@@ -369,6 +449,11 @@ app.put("/api/vendors/:id", authenticateToken, requireRole("vendor"), requireVen
       return res.status(400).json({ message: "Contact number should have at least 10 digits" });
     }
 
+    const existingVendor = await pool.query(
+      "SELECT image_url FROM vendors WHERE id = $1",
+      [vendorId]
+    );
+
     const result = await pool.query(
       `UPDATE vendors
        SET business_name = $1,
@@ -378,8 +463,9 @@ app.put("/api/vendors/:id", authenticateToken, requireRole("vendor"), requireVen
            price_range = $5,
            food_type = $6,
            event_type = $7,
-           available_date = $8
-       WHERE id = $9
+           available_date = $8,
+           image_url = COALESCE($9, image_url)
+       WHERE id = $10
        RETURNING *`,
       [
         normalizedBusinessName,
@@ -390,12 +476,17 @@ app.put("/api/vendors/:id", authenticateToken, requireRole("vendor"), requireVen
         normalizedFoodType,
         normalizedEventType,
         profileAvailableDate,
+        uploadedImagePath,
         vendorId,
       ]
     );
 
     if (result.rows.length === 0) {
       return res.status(404).json({ message: "Vendor profile not found" });
+    }
+
+    if (uploadedImagePath && existingVendor.rows[0]?.image_url) {
+      deleteUploadedVendorImage(existingVendor.rows[0].image_url);
     }
 
     res.json(formatVendor(result.rows[0]));
@@ -405,11 +496,45 @@ app.put("/api/vendors/:id", authenticateToken, requireRole("vendor"), requireVen
   }
 });
 
+app.delete("/api/vendors/:id/image", authenticateToken, requireRole("vendor"), requireVendorOwner, async (req, res) => {
+  try {
+    const vendorId = Number(req.params.id);
+
+    const existingVendor = await pool.query(
+      "SELECT image_url FROM vendors WHERE id = $1",
+      [vendorId]
+    );
+
+    if (existingVendor.rows.length === 0) {
+      return res.status(404).json({ message: "Vendor profile not found" });
+    }
+
+    const result = await pool.query(
+      `UPDATE vendors
+       SET image_url = NULL
+       WHERE id = $1
+       RETURNING *`,
+      [vendorId]
+    );
+
+    deleteUploadedVendorImage(existingVendor.rows[0].image_url);
+
+    res.json(formatVendor(result.rows[0]));
+  } catch (error) {
+    console.error("Error deleting vendor image:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 app.delete("/api/vendors/:id", authenticateToken, requireRole("vendor"), requireVendorOwner, async (req, res) => {
   const client = await pool.connect();
 
   try {
     const vendorId = Number(req.params.id);
+    const existingVendor = await client.query(
+      "SELECT image_url FROM vendors WHERE id = $1",
+      [vendorId]
+    );
 
     await client.query("BEGIN");
     await client.query("DELETE FROM vendor_services WHERE vendor_id = $1", [vendorId]);
@@ -428,6 +553,7 @@ app.delete("/api/vendors/:id", authenticateToken, requireRole("vendor"), require
     }
 
     await client.query("COMMIT");
+    deleteUploadedVendorImage(existingVendor.rows[0]?.image_url);
     res.json({ message: "Vendor profile deleted successfully" });
   } catch (error) {
     await client.query("ROLLBACK");
@@ -843,7 +969,7 @@ app.put("/api/inquiries/:id/status", authenticateToken, requireRole("vendor"), r
   }
 });
 
-app.post("/api/auth/register", async (req, res) => {
+app.post("/api/auth/register", authLimiter, async (req, res) => {
   try {
     const { name, password, role } = req.body;
     const email = String(req.body.email || "").trim().toLowerCase();
@@ -875,10 +1001,10 @@ app.post("/api/auth/register", async (req, res) => {
 
     const user = result.rows[0];
 
-    res.status(201).json({
-      user,
-      token: createToken(user),
-    });
+    const token = createToken(user);
+
+    res.cookie("eventhubToken", token, authCookieOptions);
+    res.status(201).json({ user });
   } catch (error) {
     console.error("Error registering user:", error);
 
@@ -890,7 +1016,7 @@ app.post("/api/auth/register", async (req, res) => {
   }
 });
 
-app.post("/api/auth/login", async (req, res) => {
+app.post("/api/auth/login", authLimiter, async (req, res) => {
   try {
     const email = String(req.body.email || "").trim().toLowerCase();
     const password = String(req.body.password || "").trim();
@@ -939,14 +1065,23 @@ app.post("/api/auth/login", async (req, res) => {
       role: result.rows[0].role,
     };
 
-    res.json({
-      user,
-      token: createToken(user),
-    });
+    const token = createToken(user);
+
+    res.cookie("eventhubToken", token, authCookieOptions);
+    res.json({ user });
   } catch (error) {
     console.error("Error logging in:", error);
     res.status(500).json({ message: "Server error" });
   }
+});
+
+app.post("/api/auth/logout", (req, res) => {
+  res.clearCookie("eventhubToken", {
+    httpOnly: true,
+    sameSite: authCookieOptions.sameSite,
+    secure: authCookieOptions.secure,
+  });
+  res.json({ message: "Logged out successfully" });
 });
 
 const PORT = process.env.PORT || 3001;

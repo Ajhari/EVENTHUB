@@ -25,6 +25,7 @@ function Login() {
 
     fetch("http://localhost:3001/api/auth/login", {
       method: "POST",
+      credentials: "include",
       headers: {
         "Content-Type": "application/json",
       },
@@ -43,10 +44,9 @@ function Login() {
         return data;
       })
       .then((data) => {
-        const { user, token } = data;
+        const { user } = data;
 
         localStorage.setItem("eventhubUser", JSON.stringify(user));
-        localStorage.setItem("eventhubToken", token);
         window.dispatchEvent(new Event("eventhub-auth-change"));
         setSuccessMessage(`Welcome ${user.name}. Role: ${user.role}`);
         setEmail("");

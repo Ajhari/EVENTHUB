@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { authHeaders } from "../utils/auth";
+import { authOptions } from "../utils/auth";
 
 function VendorDashboard() {
   const [vendorProfile, setVendorProfile] = useState(null);
@@ -13,6 +13,9 @@ function VendorDashboard() {
   const [eventType, setEventType] = useState("");
   const [foodType, setFoodType] = useState("");
   const [availableDate, setAvailableDate] = useState("");
+  const [vendorImageFile, setVendorImageFile] = useState(null);
+  const [vendorImagePreview, setVendorImagePreview] = useState("");
+  const [imageInputKey, setImageInputKey] = useState(0);
   const [manualBookedDates, setManualBookedDates] = useState([]);
   const [inquiryBookedDates, setInquiryBookedDates] = useState([]);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
@@ -28,6 +31,7 @@ function VendorDashboard() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingBookedDates, setSavingBookedDates] = useState(false);
   const [deletingProfile, setDeletingProfile] = useState(false);
+  const [deletingVendorImage, setDeletingVendorImage] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
 
@@ -48,6 +52,18 @@ function VendorDashboard() {
 
   function toUppercaseText(value) {
     return value.toUpperCase();
+  }
+
+  function resolveImagePath(imagePath) {
+    if (!imagePath) {
+      return "";
+    }
+
+    if (imagePath.startsWith("/uploads")) {
+      return `http://localhost:3001${imagePath}`;
+    }
+
+    return imagePath;
   }
 
   function formatDateInput(date) {
@@ -103,9 +119,7 @@ function VendorDashboard() {
       return;
     }
 
-    fetch(`http://localhost:3001/api/vendors/user/${user.id}`, {
-      headers: authHeaders(),
-    })
+    fetch(`http://localhost:3001/api/vendors/user/${user.id}`, authOptions())
       .then((response) => {
         if (response.status === 404) {
           return null;
@@ -132,14 +146,11 @@ function VendorDashboard() {
         setFoodType(toUppercaseText(profile.food_type || ""));
         setEventType(toUppercaseText(profile.event_type || ""));
         setAvailableDate(toDateInputValue(profile.available_date));
+        setVendorImagePreview(resolveImagePath(profile.image_url || ""));
 
         return Promise.all([
-          fetch(`http://localhost:3001/api/inquiries/vendor/${profile.id}`, {
-            headers: authHeaders(),
-          }),
-          fetch(`http://localhost:3001/api/vendor-booked-dates/${profile.id}`, {
-            headers: authHeaders(),
-          }),
+          fetch(`http://localhost:3001/api/inquiries/vendor/${profile.id}`, authOptions()),
+          fetch(`http://localhost:3001/api/vendor-booked-dates/${profile.id}`, authOptions()),
         ]);
       })
       .then((responses) => {
@@ -197,17 +208,20 @@ function VendorDashboard() {
       return;
     }
 
-    const profileData = {
-      user_id: user.id,
-      business_name: toUppercaseText(businessName),
-      location: toUppercaseText(location),
-      contact_number: contactNumber,
-      description: toUppercaseText(description),
-      price_range: toUppercaseText(priceRange),
-      food_type: toUppercaseText(foodType),
-      event_type: toUppercaseText(eventType),
-      available_date: availableDate || null,
-    };
+    const profileData = new FormData();
+    profileData.append("user_id", user.id);
+    profileData.append("business_name", toUppercaseText(businessName));
+    profileData.append("location", toUppercaseText(location));
+    profileData.append("contact_number", contactNumber);
+    profileData.append("description", toUppercaseText(description));
+    profileData.append("price_range", toUppercaseText(priceRange));
+    profileData.append("food_type", toUppercaseText(foodType));
+    profileData.append("event_type", toUppercaseText(eventType));
+    profileData.append("available_date", availableDate || "");
+
+    if (vendorImageFile) {
+      profileData.append("vendor_image", vendorImageFile);
+    }
 
     const url = vendorProfile
       ? `http://localhost:3001/api/vendors/${vendorProfile.id}`
@@ -219,10 +233,8 @@ function VendorDashboard() {
 
     fetch(url, {
       method,
-      headers: authHeaders({
-        "Content-Type": "application/json",
-      }),
-      body: JSON.stringify(profileData),
+      credentials: "include",
+      body: profileData,
     })
       .then(async (response) => {
         const data = await response.json();
@@ -235,6 +247,9 @@ function VendorDashboard() {
       })
       .then((profile) => {
         setVendorProfile(profile);
+        setVendorImageFile(null);
+        setImageInputKey((currentKey) => currentKey + 1);
+        setVendorImagePreview(resolveImagePath(profile.image_url || ""));
         setSuccess("Vendor profile saved successfully.");
         setSavingProfile(false);
       })
@@ -256,6 +271,9 @@ function VendorDashboard() {
     setEventType("");
     setFoodType("");
     setAvailableDate("");
+    setVendorImageFile(null);
+    setVendorImagePreview("");
+    setImageInputKey((currentKey) => currentKey + 1);
     setManualBookedDates([]);
     setInquiryBookedDates([]);
     setCalendarMonth(new Date());
@@ -275,7 +293,7 @@ function VendorDashboard() {
 
     fetch(`http://localhost:3001/api/vendors/${vendorProfile.id}`, {
       method: "DELETE",
-      headers: authHeaders(),
+      credentials: "include",
     })
       .then(async (response) => {
         const data = await response.json();
@@ -317,9 +335,10 @@ function VendorDashboard() {
 
     fetch(`http://localhost:3001/api/inquiries/${inquiryId}/status`, {
       method: "PUT",
-      headers: authHeaders({
+      headers: {
         "Content-Type": "application/json",
-      }),
+      },
+      credentials: "include",
       body: JSON.stringify({ status }),
     })
       .then((response) => {
@@ -396,9 +415,10 @@ function VendorDashboard() {
 
     fetch(`http://localhost:3001/api/vendor-booked-dates/${vendorProfile.id}`, {
       method: "PUT",
-      headers: authHeaders({
+      headers: {
         "Content-Type": "application/json",
-      }),
+      },
+      credentials: "include",
       body: JSON.stringify({
         booked_dates: manualBookedDates,
       }),
@@ -428,10 +448,85 @@ function VendorDashboard() {
       });
   }
 
+  function handleVendorImageChange(event) {
+    const file = event.target.files[0];
+
+    setProfileError("");
+
+    if (!file) {
+      setVendorImageFile(null);
+      setVendorImagePreview(resolveImagePath(vendorProfile?.image_url || ""));
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      setProfileError("Please upload an image file.");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setProfileError("Image size should be 5MB or less.");
+      return;
+    }
+
+    setVendorImageFile(file);
+    setVendorImagePreview(URL.createObjectURL(file));
+  }
+
+  function handleDeleteVendorImage() {
+    setProfileError("");
+    setSuccess("");
+
+    if (vendorImageFile) {
+      setVendorImageFile(null);
+      setVendorImagePreview(resolveImagePath(vendorProfile?.image_url || ""));
+      setImageInputKey((currentKey) => currentKey + 1);
+      return;
+    }
+
+    if (!vendorProfile?.image_url) {
+      setProfileError("No saved vendor photo to delete.");
+      return;
+    }
+
+    setDeletingVendorImage(true);
+
+    fetch(`http://localhost:3001/api/vendors/${vendorProfile.id}/image`, {
+      method: "DELETE",
+      credentials: "include",
+    })
+      .then(async (response) => {
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to delete vendor photo");
+        }
+
+        return data;
+      })
+      .then((profile) => {
+        setVendorProfile(profile);
+        setVendorImageFile(null);
+        setVendorImagePreview("");
+        setImageInputKey((currentKey) => currentKey + 1);
+        setSuccess("Vendor photo deleted successfully.");
+        setDeletingVendorImage(false);
+      })
+      .catch((error) => {
+        console.error("Error deleting vendor photo:", error);
+        setProfileError(error.message);
+        setDeletingVendorImage(false);
+      });
+  }
+
   return (
-    <section>
-      <h1>Vendor Dashboard</h1>
-      <p>Create or update your vendor profile.</p>
+    <section className="vendor-dashboard-page">
+      <header className="vendor-dashboard-hero">
+        <span className="vendor-dashboard-mark">EH</span>
+        <span className="section-eyebrow">Vendor workspace</span>
+        <h1>Vendor Dashboard</h1>
+        <p>Create your profile, manage booked dates, and handle customer inquiries.</p>
+      </header>
 
       {loading && <p>Loading dashboard...</p>}
 
@@ -440,7 +535,17 @@ function VendorDashboard() {
 
       {!loading && (
         <>
-          <form className="profile-form" onSubmit={handleProfileSubmit}>
+          <form className="profile-form vendor-dashboard-form" onSubmit={handleProfileSubmit}>
+            <div className="dashboard-form-header">
+              <div>
+                <span className="section-eyebrow">Profile control</span>
+                <h2>{vendorProfile ? "Update your public vendor card" : "Create your public vendor card"}</h2>
+              </div>
+              <span className="dashboard-status-pill">
+                {vendorProfile ? "Live profile" : "Draft profile"}
+              </span>
+            </div>
+
             <label>
               Business Name
               <input
@@ -484,6 +589,31 @@ function VendorDashboard() {
                 }
               />
             </label>
+
+            <label className="vendor-image-upload-field">
+              Vendor Photo
+              <input
+                key={imageInputKey}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={handleVendorImageChange}
+              />
+              <span>Upload JPG, PNG, or WebP image up to 5MB.</span>
+            </label>
+
+            {vendorImagePreview && (
+              <div className="vendor-image-preview">
+                <img src={vendorImagePreview} alt="Selected vendor preview" />
+                <button
+                  className="delete-vendor-image-button"
+                  type="button"
+                  disabled={deletingVendorImage}
+                  onClick={handleDeleteVendorImage}
+                >
+                  {deletingVendorImage ? "Deleting..." : "Delete Photo"}
+                </button>
+              </div>
+            )}
 
             <label>
               Food Type
@@ -686,69 +816,81 @@ function VendorDashboard() {
             {profileError && <p className="error-message">{profileError}</p>}
           </form>
 
-          <h2>Received Customer Inquiries</h2>
+          <section className="vendor-inquiry-panel">
+            <div className="dashboard-form-header">
+              <div>
+                <span className="section-eyebrow">Inquiry desk</span>
+                <h2>Received Customer Inquiries</h2>
+              </div>
+              {vendorProfile && (
+                <span className="dashboard-status-pill">
+                  {inquiries.length} total
+                </span>
+              )}
+            </div>
 
-          {statusError && <p className="error-message">{statusError}</p>}
-          {statusSuccess && <p className="success-message">{statusSuccess}</p>}
+            {statusError && <p className="error-message">{statusError}</p>}
+            {statusSuccess && <p className="success-message">{statusSuccess}</p>}
 
-          {vendorProfile && inquiries.length > 0 && (
-            <label className="dashboard-filter">
-              Filter by status
-              <select
-                value={statusFilter}
-                onChange={(event) => setStatusFilter(event.target.value)}
-              >
-                <option value="all">All</option>
-                <option value="new">New</option>
-                <option value="viewed">Viewed</option>
-                <option value="replied">Replied</option>
-              </select>
-            </label>
-          )}
-
-          {vendorProfile && inquiries.length > 0 && (
-            <p className="result-count">
-              Showing {filteredInquiries.length} of {inquiries.length} inquiries
-              {statusFilter !== "all" ? ` for "${statusFilter}"` : ""}
-            </p>
-          )}
-
-          {!vendorProfile && <p>Create your profile to receive inquiries.</p>}
-
-          {vendorProfile && inquiries.length === 0 && (
-            <p>No inquiries received yet.</p>
-          )}
-
-          {vendorProfile && inquiries.length > 0 && filteredInquiries.length === 0 && (
-            <p>No inquiries match this status.</p>
-          )}
-
-          <section className="inquiry-list">
-            {filteredInquiries.map((inquiry) => (
-              <article className="inquiry-card" key={inquiry.id}>
-                <h2>{inquiry.customer_name}</h2>
-                <p>
-                  <strong>Email:</strong> {inquiry.customer_email}
-                </p>
-                <p>
-                  <strong>Event Date:</strong> {inquiry.event_date}
-                </p>
-                <p>
-                  <strong>Message:</strong> {inquiry.message}
-                </p>
-                <label className="status-field">
-                  Status
+            {vendorProfile && inquiries.length > 0 && (
+              <label className="dashboard-filter">
+                Filter by status
                 <select
-                  value={inquiry.status}
-                  onChange={(event) => handleStatusChange(inquiry.id, event.target.value)}
+                  value={statusFilter}
+                  onChange={(event) => setStatusFilter(event.target.value)}
                 >
+                  <option value="all">All</option>
                   <option value="new">New</option>
                   <option value="viewed">Viewed</option>
                   <option value="replied">Replied</option>
                 </select>
               </label>
-              </article>
-            ))}
+            )}
+
+            {vendorProfile && inquiries.length > 0 && (
+              <p className="result-count">
+                Showing {filteredInquiries.length} of {inquiries.length} inquiries
+                {statusFilter !== "all" ? ` for "${statusFilter}"` : ""}
+              </p>
+            )}
+
+            {!vendorProfile && <p>Create your profile to receive inquiries.</p>}
+
+            {vendorProfile && inquiries.length === 0 && (
+              <p>No inquiries received yet.</p>
+            )}
+
+            {vendorProfile && inquiries.length > 0 && filteredInquiries.length === 0 && (
+              <p>No inquiries match this status.</p>
+            )}
+
+            <section className="inquiry-list">
+              {filteredInquiries.map((inquiry) => (
+                <article className="inquiry-card" key={inquiry.id}>
+                  <h2>{inquiry.customer_name}</h2>
+                  <p>
+                    <strong>Email:</strong> {inquiry.customer_email}
+                  </p>
+                  <p>
+                    <strong>Event Date:</strong> {inquiry.event_date}
+                  </p>
+                  <p>
+                    <strong>Message:</strong> {inquiry.message}
+                  </p>
+                  <label className="status-field">
+                    Status
+                  <select
+                    value={inquiry.status}
+                    onChange={(event) => handleStatusChange(inquiry.id, event.target.value)}
+                  >
+                    <option value="new">New</option>
+                    <option value="viewed">Viewed</option>
+                    <option value="replied">Replied</option>
+                  </select>
+                </label>
+                </article>
+              ))}
+            </section>
           </section>
         </>
       )}

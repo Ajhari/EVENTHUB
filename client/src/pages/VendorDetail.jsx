@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { authHeaders } from "../utils/auth";
 
 const vendorImages = {
   1: "/images/vendor-chennai-v2.jpg",
@@ -10,6 +9,12 @@ const vendorImages = {
   5: "/images/vendor-salem-v2.jpg",
   6: "/images/vendor-nellai-v2.jpg",
 };
+
+function resolveImagePath(imagePath) {
+  if (!imagePath) return "";
+  if (imagePath.startsWith("/uploads")) return `http://localhost:3001${imagePath}`;
+  return imagePath;
+}
 
 function DetailIcon({ name }) {
   const paths = {
@@ -157,9 +162,10 @@ function VendorDetail() {
 
     fetch("http://localhost:3001/api/inquiries", {
       method: "POST",
-      headers: authHeaders({
+      credentials: "include",
+      headers: {
         "Content-Type": "application/json",
-      }),
+      },
       body: JSON.stringify({
         customer_id: user.id,
         vendor_id: Number(id),
@@ -209,7 +215,7 @@ function VendorDetail() {
     year: "numeric",
   });
 
-  const heroImage = vendorImages[vendor.id] || "/images/eventhub-hero.png";
+  const heroImage = resolveImagePath(vendor.image_url) || vendorImages[vendor.id] || "/images/eventhub-hero.png";
 
   return (
     <section className="vendor-profile-page">

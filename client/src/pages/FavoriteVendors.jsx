@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { authHeaders } from "../utils/auth";
+import { authOptions } from "../utils/auth";
 
 const vendorImages = {
   1: "/images/vendor-chennai-v2.jpg",
@@ -11,8 +11,14 @@ const vendorImages = {
   6: "/images/vendor-nellai-v2.jpg",
 };
 
+function resolveImagePath(imagePath) {
+  if (!imagePath) return "";
+  if (imagePath.startsWith("/uploads")) return `http://localhost:3001${imagePath}`;
+  return imagePath;
+}
+
 function imageForVendor(vendor) {
-  return vendor.image_url || vendorImages[vendor.id] || "/images/eventhub-hero.png";
+  return resolveImagePath(vendor.image_url) || vendorImages[vendor.id] || "/images/eventhub-hero.png";
 }
 
 function FavoriteVendors() {
@@ -29,9 +35,7 @@ function FavoriteVendors() {
       return;
     }
 
-    fetch(`http://localhost:3001/api/favorites/${user.id}`, {
-      headers: authHeaders(),
-    })
+    fetch(`http://localhost:3001/api/favorites/${user.id}`, authOptions())
       .then((response) => {
         if (!response.ok) {
           throw new Error("Failed to fetch favorites");

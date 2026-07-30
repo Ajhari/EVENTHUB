@@ -30,6 +30,7 @@ function Register() {
     setCreating(true);
     fetch("http://localhost:3001/api/auth/register", {
       method: "POST",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, email, password, role }),
     })
@@ -39,10 +40,9 @@ function Register() {
         return data;
       })
       .then((data) => {
-        const { user, token } = data;
+        const { user } = data;
 
         localStorage.setItem("eventhubUser", JSON.stringify(user));
-        localStorage.setItem("eventhubToken", token);
         window.dispatchEvent(new Event("eventhub-auth-change"));
         setSuccessMessage("Account created successfully.");
         setName("");

@@ -17,13 +17,11 @@ function App() {
   useEffect(() => {
     function loadSavedUser() {
       const savedUser = localStorage.getItem("eventhubUser");
-      const savedToken = localStorage.getItem("eventhubToken");
 
-      if (savedUser && savedToken) {
+      if (savedUser) {
         setUser(JSON.parse(savedUser));
       } else {
         localStorage.removeItem("eventhubUser");
-        localStorage.removeItem("eventhubToken");
         setUser(null);
       }
     }
@@ -37,6 +35,13 @@ function App() {
   }, []);
 
   function handleLogout() {
+    fetch("http://localhost:3001/api/auth/logout", {
+      method: "POST",
+      credentials: "include",
+    }).catch((error) => {
+      console.error("Error clearing login cookie:", error);
+    });
+
     clearSavedAuth();
     setUser(null);
     window.location.href = "/vendors";

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { authHeaders } from "../utils/auth";
+import { authOptions } from "../utils/auth";
 
 const tamilNaduDistricts = [
   "Ariyalur",
@@ -97,8 +97,14 @@ function titleCase(value) {
   return value.toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
+function resolveImagePath(imagePath) {
+  if (!imagePath) return "";
+  if (imagePath.startsWith("/uploads")) return `http://localhost:3001${imagePath}`;
+  return imagePath;
+}
+
 function imageForVendor(vendor) {
-  return vendor.image_url || vendorImages[vendor.id] || "/images/eventhub-hero.png";
+  return resolveImagePath(vendor.image_url) || vendorImages[vendor.id] || "/images/eventhub-hero.png";
 }
 
 function CardIcon({ name }) {
@@ -273,9 +279,7 @@ function VendorList() {
       return;
     }
 
-    fetch(`http://localhost:3001/api/favorites/${user.id}`, {
-      headers: authHeaders(),
-    })
+    fetch(`http://localhost:3001/api/favorites/${user.id}`, authOptions())
       .then((response) => {
         if (!response.ok) {
           throw new Error("Failed to fetch favorites");
@@ -328,13 +332,14 @@ function VendorList() {
     const requestOptions = isFavorite
       ? {
           method: "DELETE",
-          headers: authHeaders(),
+          credentials: "include",
         }
       : {
           method: "POST",
-          headers: authHeaders({
+          credentials: "include",
+          headers: {
             "Content-Type": "application/json",
-          }),
+          },
           body: JSON.stringify({
             customer_id: user.id,
             vendor_id: vendorId,
