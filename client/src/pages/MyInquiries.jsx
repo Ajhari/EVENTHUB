@@ -62,7 +62,7 @@ function MyInquiries() {
   });
 
   return (
-    <section>
+    <section className="my-inquiries-page">
       <h1>My Inquiries</h1>
       <p>Track the inquiries you sent to vendors.</p>
 

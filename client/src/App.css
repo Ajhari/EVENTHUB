@@ -2055,6 +2055,136 @@ button,a { cursor: pointer; touch-action: manipulation; }
 }
 @media (max-width: 390px) { .vendor-booking-panel { padding-inline: 14px; }.vendor-profile-inquiry .availability-calendar { padding-inline: 9px; }.vendor-profile-inquiry .calendar-day { min-height: 35px; }.vendor-profile-hero h1 { font-size: 45px; } }
 
+/* Customer inquiries page */
+.my-inquiries-page {
+  position: relative;
+  overflow: hidden;
+  min-height: 720px;
+  margin: 0 calc(50% - 50vw);
+  padding: clamp(46px, 7vw, 78px) max(5vw, calc((100vw - 1720px) / 2 + 5vw)) 90px;
+  color: #ffffff;
+  background:
+    radial-gradient(circle at 12% 18%, rgba(168, 85, 247, 0.34), transparent 30%),
+    radial-gradient(circle at 88% 14%, rgba(132, 204, 22, 0.34), transparent 28%),
+    radial-gradient(circle at 52% 88%, rgba(34, 197, 94, 0.2), transparent 32%),
+    linear-gradient(135deg, #13072e 0%, #2e1065 44%, #17421f 100%);
+  isolation: isolate;
+}
+
+.my-inquiries-page::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.18;
+  background-image:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.42) 1px, transparent 1px),
+    linear-gradient(rgba(255, 255, 255, 0.42) 1px, transparent 1px);
+  background-size: 42px 42px;
+}
+
+.my-inquiries-page h1 {
+  margin: 0;
+  color: #ffffff;
+  text-shadow: 0 18px 44px rgba(0, 0, 0, 0.32);
+}
+
+.my-inquiries-page > p {
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.my-inquiries-page .result-count {
+  width: fit-content;
+  margin: 34px 0 0;
+  padding: 10px 14px;
+  border: 1px solid rgba(190, 242, 100, 0.32);
+  border-radius: 999px;
+  color: #ecfccb;
+  background: rgba(19, 7, 46, 0.34);
+  backdrop-filter: blur(14px);
+}
+
+.my-inquiries-page .dashboard-filter {
+  width: min(360px, 100%);
+  margin: 26px auto 10px;
+  color: #ffffff;
+}
+
+.my-inquiries-page .dashboard-filter select {
+  border-color: rgba(255, 255, 255, 0.28);
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.18);
+}
+
+.my-inquiries-page .dashboard-filter select option {
+  color: #111827;
+  background: #ffffff;
+}
+
+.my-inquiries-page .inquiry-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 28px;
+}
+
+.my-inquiries-page .inquiry-card {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 24px;
+  color: #ffffff;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.06)),
+    rgba(19, 7, 46, 0.5);
+  box-shadow: 0 28px 60px rgba(0, 0, 0, 0.24);
+  backdrop-filter: blur(18px);
+}
+
+.my-inquiries-page .inquiry-card h2,
+.my-inquiries-page .inquiry-card p,
+.my-inquiries-page .inquiry-card strong {
+  color: #ffffff;
+}
+
+.my-inquiries-page .inquiry-card p {
+  color: rgba(255, 255, 255, 0.84);
+}
+
+.my-inquiries-page .inquiry-card a {
+  color: #d9f99d;
+  text-decoration-color: rgba(217, 249, 157, 0.72);
+}
+
+.my-inquiries-page .status-badge {
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.my-inquiries-page .status-new {
+  color: #dbeafe;
+  background: rgba(37, 99, 235, 0.34);
+}
+
+.my-inquiries-page .status-replied {
+  color: #ecfccb;
+  background: rgba(101, 163, 13, 0.34);
+}
+
+.my-inquiries-page .status-viewed {
+  color: #f5f3ff;
+  background: rgba(126, 34, 206, 0.34);
+}
+
+@media (max-width: 760px) {
+  .my-inquiries-page {
+    padding-inline: 18px;
+  }
+
+  .my-inquiries-page .inquiry-list {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Vendor dashboard inquiry desk dark polish */
 .vendor-dashboard-page .vendor-inquiry-panel {
   border-color: rgba(255, 255, 255, 0.14);
