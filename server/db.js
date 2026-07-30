@@ -11,9 +11,25 @@ if (!databaseUrl) {
   throw new Error("DATABASE_URL is missing in server/.env");
 }
 
-const pool = new Pool({
+const hasSslModeInUrl = /[?&]sslmode=/i.test(databaseUrl);
+const isLocalDatabase =
+  databaseUrl.includes("localhost") || databaseUrl.includes("127.0.0.1");
+const shouldUseSsl =
+  process.env.PGSSLMODE === "require" ||
+  databaseUrl.includes("supabase.co") ||
+  (!isLocalDatabase && process.env.NODE_ENV === "production");
+
+const poolConfig = {
   connectionString: databaseUrl,
-});
+};
+
+if (shouldUseSsl && !hasSslModeInUrl) {
+  poolConfig.ssl = {
+    rejectUnauthorized: false,
+  };
+}
+
+const pool = new Pool(poolConfig);
 
 async function initializeDatabase() {
   const schemaPath = path.join(__dirname, "schema.sql");
