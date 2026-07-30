@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { apiUrl } from "../utils/auth";
 
 function Login() {
   const [email, setEmail] = useState("");
@@ -23,7 +24,7 @@ function Login() {
 
     setLoggingIn(true);
 
-    fetch("http://localhost:3001/api/auth/login", {
+    fetch(apiUrl("/api/auth/login"), {
       method: "POST",
       credentials: "include",
       headers: {
