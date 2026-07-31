@@ -17,7 +17,6 @@ const allowedOrigins = (process.env.FRONTEND_URL || "http://localhost:5173")
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
-let databaseReadyPromise;
 
 app.use(helmet());
 app.use(
@@ -38,24 +37,6 @@ app.use(express.json());
 const uploadsDir = path.join(__dirname, "uploads", "vendor-images");
 fs.mkdirSync(uploadsDir, { recursive: true });
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-
-function getDatabaseReadyPromise() {
-  if (!databaseReadyPromise) {
-    databaseReadyPromise = initializeDatabase();
-  }
-
-  return databaseReadyPromise;
-}
-
-app.use(async (req, res, next) => {
-  try {
-    await getDatabaseReadyPromise();
-    next();
-  } catch (error) {
-    console.error("Database setup failed:", error.message);
-    res.status(500).json({ message: "Database setup failed" });
-  }
-});
 
 const upload = multer({
   storage: multer.diskStorage({
@@ -1115,17 +1096,13 @@ app.post("/api/auth/logout", (req, res) => {
 
 const PORT = process.env.PORT || 3001;
 
-if (!process.env.VERCEL) {
-  getDatabaseReadyPromise()
-    .then(() => {
-      app.listen(PORT, () => {
-        console.log(`Server running on port ${PORT}`);
-      });
-    })
-    .catch((error) => {
-      console.error("Database setup failed:", error.message);
-      process.exit(1);
+initializeDatabase()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
     });
-}
-
-module.exports = app;
+  })
+  .catch((error) => {
+    console.error("Database setup failed:", error.message);
+    process.exit(1);
+  });
