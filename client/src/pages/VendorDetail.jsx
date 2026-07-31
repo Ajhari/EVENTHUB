@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { apiUrl, assetUrl } from "../utils/auth";
 
 const vendorImages = {
   1: "/images/vendor-chennai-v2.jpg",
@@ -12,7 +11,9 @@ const vendorImages = {
 };
 
 function resolveImagePath(imagePath) {
-  return assetUrl(imagePath);
+  if (!imagePath) return "";
+  if (imagePath.startsWith("/uploads")) return `http://localhost:3001${imagePath}`;
+  return imagePath;
 }
 
 function DetailIcon({ name }) {
@@ -95,8 +96,8 @@ function VendorDetail() {
 
   useEffect(() => {
     Promise.all([
-      fetch(apiUrl(`/api/vendors/${id}`)),
-      fetch(apiUrl(`/api/vendor-availability/${id}`)),
+      fetch(`http://localhost:3001/api/vendors/${id}`),
+      fetch(`http://localhost:3001/api/vendor-availability/${id}`),
     ])
       .then(async ([vendorResponse, availabilityResponse]) => {
         if (!vendorResponse.ok) {
@@ -159,7 +160,7 @@ function VendorDetail() {
 
     setSubmitting(true);
 
-    fetch(apiUrl("/api/inquiries"), {
+    fetch("http://localhost:3001/api/inquiries", {
       method: "POST",
       credentials: "include",
       headers: {

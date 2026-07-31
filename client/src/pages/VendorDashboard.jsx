@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { apiUrl, assetUrl, authOptions } from "../utils/auth";
+import { authOptions } from "../utils/auth";
 
 function VendorDashboard() {
   const [vendorProfile, setVendorProfile] = useState(null);
@@ -55,7 +55,15 @@ function VendorDashboard() {
   }
 
   function resolveImagePath(imagePath) {
-    return assetUrl(imagePath);
+    if (!imagePath) {
+      return "";
+    }
+
+    if (imagePath.startsWith("/uploads")) {
+      return `http://localhost:3001${imagePath}`;
+    }
+
+    return imagePath;
   }
 
   function formatDateInput(date) {
@@ -111,7 +119,7 @@ function VendorDashboard() {
       return;
     }
 
-    fetch(apiUrl(`/api/vendors/user/${user.id}`), authOptions())
+    fetch(`http://localhost:3001/api/vendors/user/${user.id}`, authOptions())
       .then((response) => {
         if (response.status === 404) {
           return null;
@@ -141,8 +149,8 @@ function VendorDashboard() {
         setVendorImagePreview(resolveImagePath(profile.image_url || ""));
 
         return Promise.all([
-          fetch(apiUrl(`/api/inquiries/vendor/${profile.id}`), authOptions()),
-          fetch(apiUrl(`/api/vendor-booked-dates/${profile.id}`), authOptions()),
+          fetch(`http://localhost:3001/api/inquiries/vendor/${profile.id}`, authOptions()),
+          fetch(`http://localhost:3001/api/vendor-booked-dates/${profile.id}`, authOptions()),
         ]);
       })
       .then((responses) => {
@@ -216,8 +224,8 @@ function VendorDashboard() {
     }
 
     const url = vendorProfile
-      ? apiUrl(`/api/vendors/${vendorProfile.id}`)
-      : apiUrl("/api/vendors");
+      ? `http://localhost:3001/api/vendors/${vendorProfile.id}`
+      : "http://localhost:3001/api/vendors";
 
     const method = vendorProfile ? "PUT" : "POST";
 
@@ -283,7 +291,7 @@ function VendorDashboard() {
     setSuccess("");
     setDeletingProfile(true);
 
-    fetch(apiUrl(`/api/vendors/${vendorProfile.id}`), {
+    fetch(`http://localhost:3001/api/vendors/${vendorProfile.id}`, {
       method: "DELETE",
       credentials: "include",
     })
@@ -325,7 +333,7 @@ function VendorDashboard() {
     setStatusError("");
     setStatusSuccess("");
 
-    fetch(apiUrl(`/api/inquiries/${inquiryId}/status`), {
+    fetch(`http://localhost:3001/api/inquiries/${inquiryId}/status`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -405,7 +413,7 @@ function VendorDashboard() {
     setAvailabilitySuccess("");
     setSavingBookedDates(true);
 
-    fetch(apiUrl(`/api/vendor-booked-dates/${vendorProfile.id}`), {
+    fetch(`http://localhost:3001/api/vendor-booked-dates/${vendorProfile.id}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -483,7 +491,7 @@ function VendorDashboard() {
 
     setDeletingVendorImage(true);
 
-    fetch(apiUrl(`/api/vendors/${vendorProfile.id}/image`), {
+    fetch(`http://localhost:3001/api/vendors/${vendorProfile.id}/image`, {
       method: "DELETE",
       credentials: "include",
     })

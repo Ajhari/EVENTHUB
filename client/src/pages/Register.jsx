@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { apiUrl } from "../utils/auth";
 
 function Register() {
   const [name, setName] = useState("");
@@ -29,7 +28,7 @@ function Register() {
     }
 
     setCreating(true);
-    fetch(apiUrl("/api/auth/register"), {
+    fetch("http://localhost:3001/api/auth/register", {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
