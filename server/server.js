@@ -1190,7 +1190,20 @@ app.post("/api/auth/logout", (req, res) => {
 
 const PORT = process.env.PORT || 3001;
 
-initializeDatabase()
+const databaseReady = initializeDatabase()
+  .then(() => {
+    console.log("Database setup complete");
+  })
+  .catch((error) => {
+    console.error("Database setup failed:", error.message);
+
+    if (!process.env.VERCEL) {
+      process.exit(1);
+    }
+  });
+
+if (!process.env.VERCEL) {
+  databaseReady
   .then(() => {
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
@@ -1200,3 +1213,6 @@ initializeDatabase()
     console.error("Database setup failed:", error.message);
     process.exit(1);
   });
+}
+
+module.exports = app;
