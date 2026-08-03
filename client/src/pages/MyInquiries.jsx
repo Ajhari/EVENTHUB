@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { apiUrl } from "../utils/api";
 import { authOptions } from "../utils/auth";
 
 function MyInquiries() {
@@ -36,7 +37,7 @@ function MyInquiries() {
       return;
     }
 
-    fetch(`http://localhost:3001/api/inquiries/customer/${user.id}`, authOptions())
+    fetch(apiUrl(`/api/inquiries/customer/${user.id}`), authOptions())
       .then((response) => {
         if (!response.ok) {
           throw new Error("Failed to fetch customer inquiries");
@@ -102,7 +103,7 @@ function MyInquiries() {
 
     setReplySavingId(inquiryId);
 
-    fetch(`http://localhost:3001/api/inquiries/${inquiryId}/customer-reply`, {
+    fetch(apiUrl(`/api/inquiries/${inquiryId}/customer-reply`), {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { apiUrl } from "../utils/api";
 
 function Register() {
   const [name, setName] = useState("");
@@ -61,7 +62,7 @@ function Register() {
     setEmail(gmailResult.email);
 
     setCreating(true);
-    fetch("http://localhost:3001/api/auth/register", {
+    fetch(apiUrl("/api/auth/register"), {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },

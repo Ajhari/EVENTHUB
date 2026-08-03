@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { apiUrl, assetUrl } from "../utils/api";
 import { authOptions } from "../utils/auth";
 
 const vendorImages = {
@@ -12,9 +13,7 @@ const vendorImages = {
 };
 
 function resolveImagePath(imagePath) {
-  if (!imagePath) return "";
-  if (imagePath.startsWith("/uploads")) return `http://localhost:3001${imagePath}`;
-  return imagePath;
+  return assetUrl(imagePath);
 }
 
 function imageForVendor(vendor) {
@@ -35,7 +34,7 @@ function FavoriteVendors() {
       return;
     }
 
-    fetch(`http://localhost:3001/api/favorites/${user.id}`, authOptions())
+    fetch(apiUrl(`/api/favorites/${user.id}`), authOptions())
       .then((response) => {
         if (!response.ok) {
           throw new Error("Failed to fetch favorites");

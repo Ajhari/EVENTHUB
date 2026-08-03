@@ -8,6 +8,7 @@ import Register from "./pages/Register";
 import VendorDashboard from "./pages/VendorDashboard";
 import VendorDetail from "./pages/VendorDetail";
 import VendorList from "./pages/VendorList";
+import { apiUrl } from "./utils/api";
 import { clearSavedAuth } from "./utils/auth";
 import "./App.css";
 
@@ -35,7 +36,7 @@ function App() {
   }, []);
 
   function handleLogout() {
-    fetch("http://localhost:3001/api/auth/logout", {
+    fetch(apiUrl("/api/auth/logout"), {
       method: "POST",
       credentials: "include",
     }).catch((error) => {

@@ -5,6 +5,7 @@ import {
   eventTypeOptions,
   foodTypeOptions,
 } from "../data/vendorOptions";
+import { apiUrl, assetUrl } from "../utils/api";
 import { authOptions } from "../utils/auth";
 
 const vendorImages = {
@@ -22,9 +23,7 @@ function titleCase(value) {
 }
 
 function resolveImagePath(imagePath) {
-  if (!imagePath) return "";
-  if (imagePath.startsWith("/uploads")) return `http://localhost:3001${imagePath}`;
-  return imagePath;
+  return assetUrl(imagePath);
 }
 
 function imageForVendor(vendor) {
@@ -199,7 +198,7 @@ function VendorList() {
       queryParams.set("availableDate", availableDateFilter);
     }
 
-    const url = `http://localhost:3001/api/vendors?${queryParams.toString()}`;
+    const url = apiUrl(`/api/vendors?${queryParams.toString()}`);
 
     fetch(url)
       .then((response) => {
@@ -226,7 +225,7 @@ function VendorList() {
       return;
     }
 
-    fetch(`http://localhost:3001/api/favorites/${user.id}`, authOptions())
+    fetch(apiUrl(`/api/favorites/${user.id}`), authOptions())
       .then((response) => {
         if (!response.ok) {
           throw new Error("Failed to fetch favorites");
@@ -273,8 +272,8 @@ function VendorList() {
 
     const isFavorite = favoriteVendorIds.includes(vendorId);
     const url = isFavorite
-      ? `http://localhost:3001/api/favorites/${user.id}/${vendorId}`
-      : "http://localhost:3001/api/favorites";
+      ? apiUrl(`/api/favorites/${user.id}/${vendorId}`)
+      : apiUrl("/api/favorites");
 
     const requestOptions = isFavorite
       ? {
