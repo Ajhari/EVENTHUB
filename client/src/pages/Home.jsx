@@ -1,6 +1,4 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
-import EventHubHero from "../components/EventHubHero";
 
 const features = [
   {
@@ -26,20 +24,46 @@ const categories = [
   { title: "Celebrations", image: "/images/vendor-family.png", detail: "Birthdays, showers & family moments" },
 ];
 
-const aboutGalleryPhotos = [
+const aboutMarqueePhotos = [
   { id: 1, image: "/images/vendor-wedding.png", title: "Wedding setup" },
   { id: 2, image: "/images/vendor-corporate.png", title: "Corporate event" },
   { id: 3, image: "/images/vendor-family.png", title: "Family celebration" },
   { id: 4, image: "/images/vendor-chennai-v2.jpg", title: "Reception decor" },
   { id: 5, image: "/images/vendor-madurai-v2.jpg", title: "Traditional moments" },
+  { id: 6, image: "/images/vendor-kovai-v2.jpg", title: "Stage production" },
+  { id: 7, image: "/images/vendor-trichy-v2.jpg", title: "Evening celebration" },
+  { id: 8, image: "/images/vendor-salem-v2.jpg", title: "Family gathering" },
 ];
 
 function Home() {
-  const [isAboutGalleryOpen, setIsAboutGalleryOpen] = useState(false);
+  const marqueePhotos = aboutMarqueePhotos;
 
   return (
     <div className="home-page">
-      <EventHubHero />
+      <section className="about-marquee-hero" aria-labelledby="about-eventhub">
+        <div className="about-marquee-copy">
+          <span className="about-marquee-pill">Everything your event needs</span>
+          <h2 id="about-eventhub">Planning should feel exciting, not overwhelming.</h2>
+          <p>
+            EventHub brings customers and local event professionals together in
+            one trusted marketplace. Explore services, compare availability, and
+            find the right people without searching across dozens of sites.
+          </p>
+        </div>
+
+        <div className="about-marquee-strip" aria-label="EventHub event moments">
+          <div className="about-marquee-track">
+            {marqueePhotos.map((photo, index) => (
+              <article
+                className={`about-marquee-card ${index % 2 === 0 ? "tilt-left" : "tilt-right"}`}
+                key={`${photo.id}-${index}`}
+              >
+                <img src={photo.image} alt={photo.title} loading="lazy" />
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
 
       <section className="category-section" aria-labelledby="category-heading">
         <div className="category-heading-row">
@@ -55,51 +79,6 @@ function Home() {
               <span className="category-arrow" aria-hidden="true">{"->"}</span>
             </Link>
           ))}
-        </div>
-      </section>
-
-      <section className="site-intro about-gallery-section" aria-labelledby="about-eventhub">
-        <div className="intro-copy">
-          <span className="section-eyebrow">Everything your event needs</span>
-          <h2 id="about-eventhub">Planning should feel exciting, not overwhelming.</h2>
-          <p>
-            EventHub brings customers and local event professionals together in
-            one trusted marketplace. Explore services, understand your options,
-            and find the right people without searching across dozens of sites.
-          </p>
-          <Link className="text-link" to="/vendors">Browse all vendors <span aria-hidden="true">{"->"}</span></Link>
-        </div>
-        <div className={`about-folder-gallery ${isAboutGalleryOpen ? "is-open" : ""}`} aria-label="EventHub visual gallery">
-          <div className="about-folder-stage">
-            <button
-              className="about-folder-cover"
-              type="button"
-              onClick={() => setIsAboutGalleryOpen((current) => !current)}
-              aria-expanded={isAboutGalleryOpen}
-            >
-              <span className="folder-tab" aria-hidden="true" />
-              <span className="folder-front" aria-hidden="true" />
-              <span className="folder-label">{isAboutGalleryOpen ? "Close gallery" : "EventHub.gallery"}</span>
-            </button>
-
-            <div className="about-photo-stack" aria-hidden={!isAboutGalleryOpen}>
-              {aboutGalleryPhotos.map((photo, index) => (
-                <article className={`about-gallery-photo photo-${index + 1}`} key={photo.id}>
-                  <img src={photo.image} alt={photo.title} loading="lazy" />
-                </article>
-              ))}
-            </div>
-          </div>
-
-          <div className="about-gallery-caption">
-            <span>{isAboutGalleryOpen ? "Click folder to close" : "Click folder to view moments"}</span>
-          </div>
-
-          <div className="intro-stats compact-stats" aria-label="EventHub highlights">
-            <div><strong>38</strong><span>Tamil Nadu districts</span></div>
-            <div><strong>12+</strong><span>Event categories</span></div>
-            <div><strong>1</strong><span>Simple marketplace</span></div>
-          </div>
         </div>
       </section>
 

@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import {
+  dashboardDistrictOptions,
+  dashboardEventTypeOptions,
+  dashboardFoodTypeOptions,
+} from "../data/vendorOptions";
 import { authOptions } from "../utils/auth";
 
 function VendorDashboard() {
@@ -27,6 +32,8 @@ function VendorDashboard() {
   const [availabilitySuccess, setAvailabilitySuccess] = useState("");
   const [statusError, setStatusError] = useState("");
   const [statusSuccess, setStatusSuccess] = useState("");
+  const [replyInputs, setReplyInputs] = useState({});
+  const [replySavingId, setReplySavingId] = useState(null);
   const [success, setSuccess] = useState("");
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingBookedDates, setSavingBookedDates] = useState(false);
@@ -37,6 +44,18 @@ function VendorDashboard() {
 
   const savedUser = localStorage.getItem("eventhubUser");
   const user = savedUser ? JSON.parse(savedUser) : null;
+
+  function messageStatusText(status) {
+    if (status === "replied") {
+      return "Replied";
+    }
+
+    if (status === "viewed") {
+      return "Viewed";
+    }
+
+    return "Sent";
+  }
 
   function toDateInputValue(dateValue) {
     if (!dateValue) {
@@ -174,6 +193,12 @@ function VendorDashboard() {
         if (data) {
           const [inquiryData, bookedDateData] = data;
           setInquiries(inquiryData);
+          setReplyInputs(
+            inquiryData.reduce((inputs, inquiry) => ({
+              ...inputs,
+              [inquiry.id]: inquiry.vendor_reply || "",
+            }), {})
+          );
           setManualBookedDates(
             bookedDateData.manual_booked_dates.map((date) =>
               toDateInputValue(date)
@@ -359,6 +384,63 @@ function VendorDashboard() {
       .catch((error) => {
         console.error("Error updating inquiry status:", error);
         setStatusError("Could not update inquiry status.");
+      });
+  }
+
+  function handleReplyChange(inquiryId, value) {
+    setReplyInputs((currentInputs) => ({
+      ...currentInputs,
+      [inquiryId]: value,
+    }));
+  }
+
+  function handleReplySubmit(inquiryId) {
+    const reply = String(replyInputs[inquiryId] || "").trim();
+
+    setStatusError("");
+    setStatusSuccess("");
+
+    if (reply.length < 3) {
+      setStatusError("Reply should be at least 3 characters.");
+      return;
+    }
+
+    setReplySavingId(inquiryId);
+
+    fetch(`http://localhost:3001/api/inquiries/${inquiryId}/reply`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({ reply }),
+    })
+      .then(async (response) => {
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to send reply");
+        }
+
+        return data;
+      })
+      .then((updatedInquiry) => {
+        setInquiries((currentInquiries) =>
+          currentInquiries.map((inquiry) =>
+            inquiry.id === updatedInquiry.id ? updatedInquiry : inquiry
+          )
+        );
+        setReplyInputs((currentInputs) => ({
+          ...currentInputs,
+          [updatedInquiry.id]: "",
+        }));
+        setStatusSuccess("Reply sent to customer.");
+        setReplySavingId(null);
+      })
+      .catch((error) => {
+        console.error("Error sending inquiry reply:", error);
+        setStatusError(error.message);
+        setReplySavingId(null);
       });
   }
 
@@ -560,14 +642,18 @@ function VendorDashboard() {
 
             <label>
               Location
-              <input
-                type="text"
+              <select
                 value={location}
-                onChange={(event) =>
-                  setLocation(toUppercaseText(event.target.value))
-                }
+                onChange={(event) => setLocation(event.target.value)}
                 required
-              />
+              >
+                <option value="">SELECT LOCATION</option>
+                {dashboardDistrictOptions.map((option) => (
+                  <option value={option.value} key={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
             </label>
 
             <label>
@@ -621,18 +707,11 @@ function VendorDashboard() {
                 value={foodType}
                 onChange={(event) => setFoodType(event.target.value)}
               >
-                <option value="">SELECT FOOD TYPE</option>
-                <option value="VEG">VEG</option>
-                <option value="NON-VEG">NON-VEG</option>
-                <option value="VEG AND NON-VEG">VEG AND NON-VEG</option>
-                <option value="VEGAN">VEGAN</option>
-                <option value="JAIN FOOD">JAIN FOOD</option>
-                <option value="SOUTH INDIAN">SOUTH INDIAN</option>
-                <option value="NORTH INDIAN">NORTH INDIAN</option>
-                <option value="CHINESE">CHINESE</option>
-                <option value="CONTINENTAL">CONTINENTAL</option>
-                <option value="SNACKS AND SWEETS">SNACKS AND SWEETS</option>
-                <option value="CUSTOM MENU">CUSTOM MENU</option>
+                {dashboardFoodTypeOptions.map((option) => (
+                  <option value={option.value} key={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </select>
             </label>
 
@@ -642,20 +721,11 @@ function VendorDashboard() {
                 value={eventType}
                 onChange={(event) => setEventType(event.target.value)}
               >
-                <option value="">SELECT EVENT TYPE</option>
-                <option value="WEDDING">WEDDING</option>
-                <option value="RECEPTION">RECEPTION</option>
-                <option value="ENGAGEMENT">ENGAGEMENT</option>
-                <option value="BIRTHDAY">BIRTHDAY</option>
-                <option value="EAR PIERCING">EAR PIERCING</option>
-                <option value="BABY SHOWER">BABY SHOWER</option>
-                <option value="NAMING CEREMONY">NAMING CEREMONY</option>
-                <option value="HOUSE WARMING">HOUSE WARMING</option>
-                <option value="CORPORATE EVENT">CORPORATE EVENT</option>
-                <option value="COLLEGE EVENT">COLLEGE EVENT</option>
-                <option value="FAMILY FUNCTION">FAMILY FUNCTION</option>
-                <option value="TEMPLE FUNCTION">TEMPLE FUNCTION</option>
-                <option value="CUSTOM EVENT">CUSTOM EVENT</option>
+                {dashboardEventTypeOptions.map((option) => (
+                  <option value={option.value} key={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </select>
             </label>
 
@@ -866,17 +936,65 @@ function VendorDashboard() {
 
             <section className="inquiry-list">
               {filteredInquiries.map((inquiry) => (
-                <article className="inquiry-card" key={inquiry.id}>
-                  <h2>{inquiry.customer_name}</h2>
-                  <p>
-                    <strong>Email:</strong> {inquiry.customer_email}
+                <article className="inquiry-card chat-inquiry-card" key={inquiry.id}>
+                  <div className="chat-inquiry-header">
+                    <div>
+                      <h2>{inquiry.customer_name}</h2>
+                      <p>{inquiry.customer_email}</p>
+                    </div>
+                    <span className={`status-badge status-${inquiry.status}`}>
+                      {inquiry.status}
+                    </span>
+                  </div>
+
+                  <p className="chat-event-date">
+                    Event Date: {inquiry.event_date}
                   </p>
-                  <p>
-                    <strong>Event Date:</strong> {inquiry.event_date}
-                  </p>
-                  <p>
-                    <strong>Message:</strong> {inquiry.message}
-                  </p>
+
+                  <div className="chat-thread">
+                    <div className="chat-bubble chat-bubble-customer">
+                      <span>Customer</span>
+                      <p>{inquiry.message}</p>
+                      <small>{messageStatusText(inquiry.status)}</small>
+                    </div>
+
+                    {inquiry.vendor_reply && (
+                      <div className="chat-bubble chat-bubble-vendor">
+                        <span>You</span>
+                        <p>{inquiry.vendor_reply}</p>
+                        <small>Sent</small>
+                      </div>
+                    )}
+
+                    {inquiry.customer_reply && (
+                      <div className="chat-bubble chat-bubble-customer">
+                        <span>Customer reply</span>
+                        <p>{inquiry.customer_reply}</p>
+                        <small>Viewed</small>
+                      </div>
+                    )}
+                  </div>
+
+                  <label className="reply-field">
+                    Reply to customer
+                    <textarea
+                      value={replyInputs[inquiry.id] || ""}
+                      onChange={(event) =>
+                        handleReplyChange(inquiry.id, event.target.value)
+                      }
+                      placeholder="Type your reply..."
+                    />
+                  </label>
+
+                  <button
+                    className="send-reply-button"
+                    type="button"
+                    disabled={replySavingId === inquiry.id}
+                    onClick={() => handleReplySubmit(inquiry.id)}
+                  >
+                    {replySavingId === inquiry.id ? "Sending..." : "Send Reply"}
+                  </button>
+
                   <label className="status-field">
                     Status
                   <select

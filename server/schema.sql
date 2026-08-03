@@ -53,6 +53,22 @@ CREATE TABLE IF NOT EXISTS inquiries (
   vendor_id INTEGER REFERENCES vendors(id),
   event_date DATE NOT NULL,
   message TEXT NOT NULL,
+  vendor_reply TEXT,
+  replied_at TIMESTAMP,
+  customer_reply TEXT,
+  customer_replied_at TIMESTAMP,
   status TEXT DEFAULT 'new',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+ALTER TABLE inquiries
+ADD COLUMN IF NOT EXISTS vendor_reply TEXT;
+
+ALTER TABLE inquiries
+ADD COLUMN IF NOT EXISTS replied_at TIMESTAMP;
+
+ALTER TABLE inquiries
+ADD COLUMN IF NOT EXISTS customer_reply TEXT;
+
+ALTER TABLE inquiries
+ADD COLUMN IF NOT EXISTS customer_replied_at TIMESTAMP;

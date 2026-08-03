@@ -6,13 +6,28 @@ function MyInquiries() {
   const [inquiries, setInquiries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pageError, setPageError] = useState("");
+  const [pageSuccess, setPageSuccess] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [replyInputs, setReplyInputs] = useState({});
+  const [replySavingId, setReplySavingId] = useState(null);
 
   const savedUser = localStorage.getItem("eventhubUser");
   const user = savedUser ? JSON.parse(savedUser) : null;
 
   function formatDate(dateValue) {
     return new Date(dateValue).toLocaleDateString("en-IN");
+  }
+
+  function messageStatusText(status) {
+    if (status === "replied") {
+      return "Replied";
+    }
+
+    if (status === "viewed") {
+      return "Viewed";
+    }
+
+    return "Sent";
   }
 
   useEffect(() => {
@@ -31,6 +46,12 @@ function MyInquiries() {
       })
       .then((data) => {
         setInquiries(data);
+        setReplyInputs(
+          data.reduce((inputs, inquiry) => ({
+            ...inputs,
+            [inquiry.id]: inquiry.customer_reply || "",
+          }), {})
+        );
         setLoading(false);
       })
       .catch((error) => {
@@ -61,6 +82,63 @@ function MyInquiries() {
     return inquiry.status === statusFilter;
   });
 
+  function handleReplyChange(inquiryId, value) {
+    setReplyInputs((currentInputs) => ({
+      ...currentInputs,
+      [inquiryId]: value,
+    }));
+  }
+
+  function handleReplySubmit(inquiryId) {
+    const reply = String(replyInputs[inquiryId] || "").trim();
+
+    setPageError("");
+    setPageSuccess("");
+
+    if (reply.length < 3) {
+      setPageError("Reply should be at least 3 characters.");
+      return;
+    }
+
+    setReplySavingId(inquiryId);
+
+    fetch(`http://localhost:3001/api/inquiries/${inquiryId}/customer-reply`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({ reply }),
+    })
+      .then(async (response) => {
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to send reply");
+        }
+
+        return data;
+      })
+      .then((updatedInquiry) => {
+        setInquiries((currentInquiries) =>
+          currentInquiries.map((inquiry) =>
+            inquiry.id === updatedInquiry.id ? updatedInquiry : inquiry
+          )
+        );
+        setReplyInputs((currentInputs) => ({
+          ...currentInputs,
+          [updatedInquiry.id]: "",
+        }));
+        setPageSuccess("Reply sent to vendor.");
+        setReplySavingId(null);
+      })
+      .catch((error) => {
+        console.error("Error sending customer reply:", error);
+        setPageError(error.message);
+        setReplySavingId(null);
+      });
+  }
+
   return (
     <section className="my-inquiries-page">
       <h1>My Inquiries</h1>
@@ -69,6 +147,7 @@ function MyInquiries() {
       {loading && <p>Loading inquiries...</p>}
 
       {pageError && <p className="error-message">{pageError}</p>}
+      {pageSuccess && <p className="success-message">{pageSuccess}</p>}
 
       {!loading && !pageError && inquiries.length === 0 && (
         <p>You have not sent any inquiries yet.</p>
@@ -102,20 +181,75 @@ function MyInquiries() {
 
       <section className="inquiry-list">
         {filteredInquiries.map((inquiry) => (
-          <article className="inquiry-card" key={inquiry.id}>
-            <h2>{inquiry.business_name}</h2>
-            <p>
-              <strong>Location:</strong> {inquiry.location}
+          <article className="inquiry-card chat-inquiry-card" key={inquiry.id}>
+            <div className="chat-inquiry-header">
+              <div>
+                <h2>{inquiry.business_name}</h2>
+                <p>{inquiry.location}</p>
+              </div>
+              <span className={`status-badge status-${inquiry.status}`}>
+                {inquiry.status}
+              </span>
+            </div>
+
+            <p className="chat-event-date">
+              Event Date: {formatDate(inquiry.event_date)}
             </p>
-            <p>
-              <strong>Event Date:</strong> {formatDate(inquiry.event_date)}
-            </p>
-            <p>
-              <strong>Message:</strong> {inquiry.message}
-            </p>
-            <span className={`status-badge status-${inquiry.status}`}>
-              {inquiry.status}
-            </span>
+
+            <div className="chat-thread">
+              <div className="chat-bubble chat-bubble-customer">
+                <span>You</span>
+                <p>{inquiry.message}</p>
+                <small>{messageStatusText(inquiry.status)}</small>
+              </div>
+
+              {inquiry.vendor_reply ? (
+                <div className="chat-bubble chat-bubble-vendor">
+                  <span>Vendor</span>
+                  <p>{inquiry.vendor_reply}</p>
+                  <small>Viewed</small>
+                </div>
+              ) : (
+                <div className="chat-bubble chat-bubble-empty">
+                  <span>Vendor</span>
+                  <p>No reply yet.</p>
+                  <small>Waiting</small>
+                </div>
+              )}
+
+              {inquiry.customer_reply && (
+                <div className="chat-bubble chat-bubble-customer">
+                  <span>You replied</span>
+                  <p>{inquiry.customer_reply}</p>
+                  <small>Sent</small>
+                </div>
+              )}
+            </div>
+
+            {inquiry.vendor_reply && (
+              <>
+                <label className="reply-field">
+                  Reply to vendor
+                  <textarea
+                    value={replyInputs[inquiry.id] || ""}
+                    onChange={(event) =>
+                      handleReplyChange(inquiry.id, event.target.value)
+                    }
+                    placeholder="Type your reply..."
+                  />
+                </label>
+
+                <button
+                  className="send-reply-button"
+                  type="button"
+                  disabled={replySavingId === inquiry.id}
+                  onClick={() => handleReplySubmit(inquiry.id)}
+                >
+                  {replySavingId === inquiry.id ? "Sending..." : "Send Reply"}
+                </button>
+              </>
+            )}
+
             <Link to={`/vendors/${inquiry.vendor_id}`}>View Vendor</Link>
           </article>
         ))}

@@ -1,87 +1,11 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
+import {
+  districtOptions,
+  eventTypeOptions,
+  foodTypeOptions,
+} from "../data/vendorOptions";
 import { authOptions } from "../utils/auth";
-
-const tamilNaduDistricts = [
-  "Ariyalur",
-  "Chengalpattu",
-  "Chennai",
-  "Coimbatore",
-  "Cuddalore",
-  "Dharmapuri",
-  "Dindigul",
-  "Erode",
-  "Kallakurichi",
-  "Kancheepuram",
-  "Kanniyakumari",
-  "Karur",
-  "Krishnagiri",
-  "Madurai",
-  "Mayiladuthurai",
-  "Nagapattinam",
-  "Namakkal",
-  "Perambalur",
-  "Pudukkottai",
-  "Ramanathapuram",
-  "Ranipet",
-  "Salem",
-  "Sivaganga",
-  "Tenkasi",
-  "Thanjavur",
-  "Theni",
-  "Thiruvallur",
-  "Thiruvarur",
-  "Thoothukudi",
-  "Tiruchirappalli",
-  "Tirunelveli",
-  "Tirupathur",
-  "Tiruppur",
-  "Tiruvannamalai",
-  "The Nilgiris",
-  "Vellore",
-  "Villupuram",
-  "Virudhunagar",
-];
-
-const districtOptions = [
-  { label: "ALL DISTRICTS", value: "" },
-  ...tamilNaduDistricts.map((district) => ({
-    label: district.toUpperCase(),
-    value: district.toUpperCase(),
-  })),
-];
-
-const foodTypeOptions = [
-  { label: "ALL FOOD TYPES", value: "" },
-  { label: "VEG", value: "VEG" },
-  { label: "NON-VEG", value: "NON-VEG" },
-  { label: "VEG AND NON-VEG", value: "VEG AND NON-VEG" },
-  { label: "VEGAN", value: "VEGAN" },
-  { label: "JAIN FOOD", value: "JAIN FOOD" },
-  { label: "SOUTH INDIAN", value: "SOUTH INDIAN" },
-  { label: "NORTH INDIAN", value: "NORTH INDIAN" },
-  { label: "CHINESE", value: "CHINESE" },
-  { label: "CONTINENTAL", value: "CONTINENTAL" },
-  { label: "SNACKS AND SWEETS", value: "SNACKS AND SWEETS" },
-  { label: "CUSTOM MENU", value: "CUSTOM MENU" },
-];
-
-const eventTypeOptions = [
-  { label: "ALL EVENT TYPES", value: "" },
-  { label: "WEDDING", value: "WEDDING" },
-  { label: "RECEPTION", value: "RECEPTION" },
-  { label: "ENGAGEMENT", value: "ENGAGEMENT" },
-  { label: "BIRTHDAY", value: "BIRTHDAY" },
-  { label: "EAR PIERCING", value: "EAR PIERCING" },
-  { label: "BABY SHOWER", value: "BABY SHOWER" },
-  { label: "NAMING CEREMONY", value: "NAMING CEREMONY" },
-  { label: "HOUSE WARMING", value: "HOUSE WARMING" },
-  { label: "CORPORATE EVENT", value: "CORPORATE EVENT" },
-  { label: "COLLEGE EVENT", value: "COLLEGE EVENT" },
-  { label: "FAMILY FUNCTION", value: "FAMILY FUNCTION" },
-  { label: "TEMPLE FUNCTION", value: "TEMPLE FUNCTION" },
-  { label: "CUSTOM EVENT", value: "CUSTOM EVENT" },
-];
 
 const vendorImages = {
   1: "/images/vendor-chennai-v2.jpg",
@@ -216,19 +140,42 @@ function FilterDropdown({ label, options, value, isOpen, onToggle, onChange }) {
 }
 
 function VendorList() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [vendors, setVendors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [locationFilter, setLocationFilter] = useState("");
-  const [foodTypeFilter, setFoodTypeFilter] = useState("");
-  const [eventTypeFilter, setEventTypeFilter] = useState("");
-  const [availableDateFilter, setAvailableDateFilter] = useState("");
+  const [locationFilter, setLocationFilter] = useState(searchParams.get("location") || "");
+  const [foodTypeFilter, setFoodTypeFilter] = useState(searchParams.get("foodType") || "");
+  const [eventTypeFilter, setEventTypeFilter] = useState(searchParams.get("eventType") || "");
+  const [availableDateFilter, setAvailableDateFilter] = useState(searchParams.get("availableDate") || "");
   const [openFilter, setOpenFilter] = useState("");
   const [favoriteVendorIds, setFavoriteVendorIds] = useState([]);
   const [savingFavoriteId, setSavingFavoriteId] = useState(null);
   const [favoriteError, setFavoriteError] = useState("");
   const savedUser = localStorage.getItem("eventhubUser");
   const user = savedUser ? JSON.parse(savedUser) : null;
+
+  useEffect(() => {
+    const queryParams = new URLSearchParams();
+
+    if (locationFilter) {
+      queryParams.set("location", locationFilter);
+    }
+
+    if (foodTypeFilter) {
+      queryParams.set("foodType", foodTypeFilter);
+    }
+
+    if (eventTypeFilter) {
+      queryParams.set("eventType", eventTypeFilter);
+    }
+
+    if (availableDateFilter) {
+      queryParams.set("availableDate", availableDateFilter);
+    }
+
+    setSearchParams(queryParams, { replace: true });
+  }, [locationFilter, foodTypeFilter, eventTypeFilter, availableDateFilter, setSearchParams]);
 
   useEffect(() => {
     setLoading(true);

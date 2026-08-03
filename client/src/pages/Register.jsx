@@ -12,6 +12,35 @@ function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
+  function getGmailAddress(value) {
+    const trimmedEmail = value.trim().toLowerCase();
+    const emailParts = trimmedEmail.split("@");
+    const emailName = emailParts[0];
+    const emailDomain = emailParts[1];
+
+    if (emailParts.length !== 2 || !emailName) {
+      return { email: "", error: "Enter your email like name@gmail.com." };
+    }
+
+    if (emailDomain === "") {
+      return { email: `${emailName}@gmail.com`, error: "" };
+    }
+
+    if (emailDomain !== "gmail.com") {
+      return { email: "", error: "Only gmail.com email addresses are allowed." };
+    }
+
+    return { email: trimmedEmail, error: "" };
+  }
+
+  function handleEmailBlur() {
+    const result = getGmailAddress(email);
+
+    if (result.email) {
+      setEmail(result.email);
+    }
+  }
+
   function handleSubmit(event) {
     event.preventDefault();
     setSuccessMessage("");
@@ -22,17 +51,21 @@ function Register() {
       return;
     }
 
-    if (!email.includes("@")) {
-      setErrorMessage("Enter a valid email address.");
+    const gmailResult = getGmailAddress(email);
+
+    if (gmailResult.error) {
+      setErrorMessage(gmailResult.error);
       return;
     }
+
+    setEmail(gmailResult.email);
 
     setCreating(true);
     fetch("http://localhost:3001/api/auth/register", {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, password, role }),
+      body: JSON.stringify({ name, email: gmailResult.email, password, role }),
     })
       .then(async (response) => {
         const data = await response.json();
@@ -40,22 +73,13 @@ function Register() {
         return data;
       })
       .then((data) => {
-        const { user } = data;
-
-        localStorage.setItem("eventhubUser", JSON.stringify(user));
-        window.dispatchEvent(new Event("eventhub-auth-change"));
-        setSuccessMessage("Account created successfully.");
+        setSuccessMessage(data.message || "Account created successfully. Please login.");
         setName("");
         setEmail("");
         setPassword("");
         setRole("customer");
         setCreating(false);
-
-        if (user.role === "vendor") {
-          navigate("/vendor/dashboard");
-        } else {
-          navigate("/vendors");
-        }
+        navigate("/login");
       })
       .catch((error) => {
         console.error("Error registering:", error);
@@ -115,7 +139,7 @@ function Register() {
             <label htmlFor="register-email">Email address</label>
             <div className="login-input-wrap">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v12H4zM4 7l8 6 8-6" /></svg>
-              <input id="register-email" type="email" autoComplete="email" placeholder="you@example.com" value={email} onChange={(event) => setEmail(event.target.value)} required />
+              <input id="register-email" type="text" inputMode="email" autoComplete="email" placeholder="you@gmail.com" value={email} onBlur={handleEmailBlur} onChange={(event) => setEmail(event.target.value)} required />
             </div>
 
             <label htmlFor="register-password">Create password</label>

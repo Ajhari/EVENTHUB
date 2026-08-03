@@ -14,7 +14,13 @@ const { initializeDatabase, pool } = require("./db");
 
 const app = express();
 
-app.use(helmet());
+app.use(
+  helmet({
+    crossOriginResourcePolicy: {
+      policy: "cross-origin",
+    },
+  })
+);
 app.use(
   cors({
     origin: "http://localhost:5173",
@@ -211,6 +217,30 @@ async function requireInquiryVendorOwner(req, res, next) {
     return next();
   } catch (error) {
     console.error("Error checking inquiry owner:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+}
+
+async function requireInquiryCustomerOwner(req, res, next) {
+  try {
+    const inquiryId = Number(req.params.id);
+
+    const result = await pool.query(
+      "SELECT customer_id FROM inquiries WHERE id = $1",
+      [inquiryId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Inquiry not found" });
+    }
+
+    if (Number(result.rows[0].customer_id) !== Number(req.user.id)) {
+      return res.status(403).json({ message: "You can only reply to your own inquiry" });
+    }
+
+    return next();
+  } catch (error) {
+    console.error("Error checking inquiry customer:", error);
     return res.status(500).json({ message: "Server error" });
   }
 }
@@ -901,6 +931,11 @@ app.get("/api/inquiries/vendor/:vendorId", authenticateToken, requireRole("vendo
   try {
     const vendorId = Number(req.params.vendorId);
 
+    await pool.query(
+      "UPDATE inquiries SET status = 'viewed' WHERE vendor_id = $1 AND status = 'new'",
+      [vendorId]
+    );
+
     const result = await pool.query(
       `SELECT inquiries.*, users.name AS customer_name, users.email AS customer_email
        FROM inquiries
@@ -969,10 +1004,69 @@ app.put("/api/inquiries/:id/status", authenticateToken, requireRole("vendor"), r
   }
 });
 
+app.put("/api/inquiries/:id/reply", authenticateToken, requireRole("vendor"), requireInquiryVendorOwner, async (req, res) => {
+  try {
+    const inquiryId = Number(req.params.id);
+    const reply = String(req.body.reply || "").trim();
+
+    if (reply.length < 3) {
+      return res.status(400).json({ message: "Reply should be at least 3 characters" });
+    }
+
+    const result = await pool.query(
+      `UPDATE inquiries
+       SET vendor_reply = $1,
+           replied_at = CURRENT_TIMESTAMP,
+           status = 'replied'
+       WHERE id = $2
+       RETURNING *`,
+      [reply, inquiryId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Inquiry not found" });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error("Error replying to inquiry:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+app.put("/api/inquiries/:id/customer-reply", authenticateToken, requireRole("customer"), requireInquiryCustomerOwner, async (req, res) => {
+  try {
+    const inquiryId = Number(req.params.id);
+    const reply = String(req.body.reply || "").trim();
+
+    if (reply.length < 3) {
+      return res.status(400).json({ message: "Reply should be at least 3 characters" });
+    }
+
+    const result = await pool.query(
+      `UPDATE inquiries
+       SET customer_reply = $1,
+           customer_replied_at = CURRENT_TIMESTAMP
+       WHERE id = $2
+       RETURNING *`,
+      [reply, inquiryId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Inquiry not found" });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error("Error sending customer reply:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 app.post("/api/auth/register", authLimiter, async (req, res) => {
   try {
     const { name, password, role } = req.body;
-    const email = String(req.body.email || "").trim().toLowerCase();
+    let email = String(req.body.email || "").trim().toLowerCase();
 
     if (!name || !email || !password || !role) {
       return res.status(400).json({ message: "All fields are required" });
@@ -982,8 +1076,18 @@ app.post("/api/auth/register", authLimiter, async (req, res) => {
       return res.status(400).json({ message: "Password should be at least 6 characters" });
     }
 
-    if (!email.includes("@")) {
-      return res.status(400).json({ message: "Email must contain @" });
+    const emailParts = email.split("@");
+    const emailName = emailParts[0];
+    const emailDomain = emailParts[1];
+
+    if (emailParts.length !== 2 || !emailName) {
+      return res.status(400).json({ message: "Enter a valid Gmail address" });
+    }
+
+    if (emailDomain === "") {
+      email = `${emailName}@gmail.com`;
+    } else if (emailDomain !== "gmail.com") {
+      return res.status(400).json({ message: "Only gmail.com email addresses are allowed" });
     }
 
     if (role !== "customer" && role !== "vendor") {
@@ -1001,10 +1105,10 @@ app.post("/api/auth/register", authLimiter, async (req, res) => {
 
     const user = result.rows[0];
 
-    const token = createToken(user);
-
-    res.cookie("eventhubToken", token, authCookieOptions);
-    res.status(201).json({ user });
+    res.status(201).json({
+      message: "Account created successfully. Please login.",
+      user,
+    });
   } catch (error) {
     console.error("Error registering user:", error);
 
@@ -1037,7 +1141,7 @@ app.post("/api/auth/login", authLimiter, async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(401).json({ message: "Invalid email or password" });
+      return res.status(404).json({ message: "Please register first using Join EventHub." });
     }
 
     const savedPassword = result.rows[0].password_hash;

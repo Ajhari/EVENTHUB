@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "db:setup": "node scripts/setup-db.js",
+    "db:hash-passwords": "node scripts/hash-existing-passwords.js",
     "hari": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

@@ -53,7 +53,7 @@ function App() {
         <nav className="navbar">
           <Link className="brand-link" to="/" aria-label="EventHub home">
             <span className="brand-mark" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="M7 3v3M17 3v3M4 9h16M6 5h12a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/><path d="m8 14 2.2 2L16 11"/></svg>
+              <img className="brand-logo-image" src="/favicon.svg" alt="" />
             </span>
             <span>Event<span>Hub</span></span>
           </Link>
@@ -106,7 +106,7 @@ function App() {
           <div className="footer-brand">
             <Link className="brand-link" to="/" aria-label="EventHub home">
               <span className="brand-mark" aria-hidden="true">
-                <svg viewBox="0 0 24 24"><path d="M7 3v3M17 3v3M4 9h16M6 5h12a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/><path d="m8 14 2.2 2L16 11"/></svg>
+                <img className="brand-logo-image" src="/favicon.svg" alt="" />
               </span>
               <span>Event<span>Hub</span></span>
             </Link>
