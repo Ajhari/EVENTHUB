@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { BrowserRouter, Link, NavLink, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Link, NavLink, Route, Routes, useLocation } from "react-router-dom";
 import FavoriteVendors from "./pages/FavoriteVendors";
 import Login from "./pages/Login";
 import Home from "./pages/Home";
@@ -11,6 +11,16 @@ import VendorList from "./pages/VendorList";
 import { apiUrl } from "./utils/api";
 import { clearSavedAuth } from "./utils/auth";
 import "./App.css";
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [pathname]);
+
+  return null;
+}
 
 function App() {
   const [user, setUser] = useState(null);
@@ -50,6 +60,7 @@ function App() {
 
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <main className="app">
         <nav className="navbar">
           <Link className="brand-link" to="/" aria-label="EventHub home">

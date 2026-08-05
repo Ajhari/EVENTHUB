@@ -84,8 +84,6 @@ function Login() {
 
       <div className="login-panel">
         <div className="login-panel-inner">
-          <Link className="login-back-link" to="/vendors"><span aria-hidden="true">←</span> Back to vendors</Link>
-          <span className="section-eyebrow">Welcome back</span>
           <h1>Sign in to EventHub</h1>
           <p className="login-intro">Access your inquiries, bookings, and vendor workspace.</p>
 
