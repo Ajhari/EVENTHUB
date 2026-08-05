@@ -389,6 +389,46 @@ section > h1 + p {
   color: #7a8796;
 }
 
+.date-filter-label {
+  position: relative;
+  display: block;
+}
+
+.date-filter-display {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  left: 16px;
+  max-width: calc(100% - 64px);
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: 13px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.date-filter-display:not(.has-date) {
+  color: #6b7280;
+}
+
+.date-filter-input {
+  position: relative;
+  color: transparent;
+}
+
+.date-filter-input::-webkit-datetime-edit {
+  color: transparent;
+}
+
+.date-filter-input::-webkit-calendar-picker-indicator {
+  opacity: 1;
+  cursor: pointer;
+}
+
 .filter-input:focus,
 .filter-select:focus,
 .date-filter-input:focus,

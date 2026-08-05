@@ -377,6 +377,9 @@ function VendorList() {
 
         <label className="date-filter-label">
           <span className="sr-only">Available date</span>
+          <span className={availableDateFilter ? "date-filter-display has-date" : "date-filter-display"}>
+            {availableDateFilter || "Available date"}
+          </span>
           <input
             className="date-filter-input"
             type="date"
