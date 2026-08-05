@@ -218,7 +218,7 @@ function VendorDetail() {
 
   return (
     <section className="vendor-profile-page">
-      <Link className="vendor-profile-back" to="/vendors"><DetailIcon name="arrow" /> Back to all vendors</Link>
+      <Link className="vendor-profile-back" to="/"><DetailIcon name="arrow" /> Back to home</Link>
 
       <header className="vendor-profile-hero">
         <img src={heroImage} alt={`${vendor.business_name} event setup`} width="1536" height="1024" fetchPriority="high" />

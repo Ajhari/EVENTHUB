@@ -1865,6 +1865,9 @@ button,a { cursor: pointer; touch-action: manipulation; }
 .card-save-button:hover { border-color: var(--color-primary); background: var(--color-primary-soft); transform: translateY(-1px); }
 .card-save-button-active { border-color: #fecdd3; color: #be123c; background: #fff1f2; }
 .card-save-button:disabled { opacity: .7; cursor: not-allowed; transform: none; }
+.card-save-row { display: flex; min-height: 46px; align-items: center; justify-content: flex-end; gap: 10px; margin: -4px 10px 12px auto; }
+.card-save-row .card-save-button { margin: 0; }
+.card-save-message { position: relative; z-index: 4; max-width: 170px; padding: 7px 10px; border-radius: 999px; color: #14532d; font-size: 12px; font-weight: 900; background: #dcfce7; white-space: nowrap; }
 @media (max-width: 620px) { .vendor-card { min-height: 0; }.vendor-card-visual { aspect-ratio: 16 / 10; } }
 
 /* Premium authentication experience */
@@ -2118,6 +2121,15 @@ button,a { cursor: pointer; touch-action: manipulation; }
 .nav-links .logout-button:hover {
   color: white;
   background: #b91c1c;
+}
+
+.app > .navbar {
+  width: 100vw;
+  margin-right: calc(50% - 50vw);
+  margin-left: calc(50% - 50vw);
+  padding-right: max(24px, calc((100vw - 1440px) / 2 + 32px));
+  padding-left: max(24px, calc((100vw - 1440px) / 2 + 32px));
+  border-radius: 0 0 28px 28px;
 }
 
 /* About page animated marquee hero */

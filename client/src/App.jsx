@@ -60,7 +60,7 @@ function App() {
           </Link>
 
           <div className="nav-links">
-            <NavLink to="/" end>About</NavLink>
+            <NavLink to="/" end>Home</NavLink>
             <NavLink to="/vendors">Explore vendors</NavLink>
 
             {user?.role === "customer" && (

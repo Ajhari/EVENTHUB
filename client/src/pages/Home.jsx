@@ -68,7 +68,7 @@ function Home() {
       <section className="category-section" aria-labelledby="category-heading">
         <div className="category-heading-row">
           <div><span className="section-eyebrow">Browse by occasion</span><h2 id="category-heading">Whatever you are celebrating.</h2></div>
-          <Link className="text-link" to="/vendors">View directory <span aria-hidden="true">{"->"}</span></Link>
+          <Link className="text-link" to="/vendors">View vendors <span aria-hidden="true">{"->"}</span></Link>
         </div>
         <div className="category-grid">
           {categories.map((category) => (

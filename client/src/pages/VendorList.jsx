@@ -41,7 +41,7 @@ function CardIcon({ name }) {
   return <svg className="vendor-inline-icon" viewBox="0 0 24 24" aria-hidden="true">{paths[name]}</svg>;
 }
 
-function VendorCard({ vendor, isFavorite, isSavingFavorite, onFavoriteToggle }) {
+function VendorCard({ vendor, isFavorite, isSavingFavorite, favoriteMessage, onFavoriteToggle }) {
   const eventType = titleCase(vendor.event_type) || "Custom Events";
   const availableDate = vendor.available_date
     ? new Date(vendor.available_date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
@@ -64,18 +64,21 @@ function VendorCard({ vendor, isFavorite, isSavingFavorite, onFavoriteToggle }) 
       </div>
 
       <div className="vendor-destination-content">
-        <button
-          className={isFavorite ? "card-save-button card-save-button-active" : "card-save-button"}
-          type="button"
-          disabled={isSavingFavorite}
-          onClick={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            onFavoriteToggle(vendor.id);
-          }}
-        >
-          {isSavingFavorite ? "Saving..." : isFavorite ? "Saved" : "Save"}
-        </button>
+        <div className="card-save-row">
+          <button
+            className={isFavorite ? "card-save-button card-save-button-active" : "card-save-button"}
+            type="button"
+            disabled={isSavingFavorite}
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              onFavoriteToggle(vendor.id);
+            }}
+          >
+            {isSavingFavorite ? "Saving..." : isFavorite ? "Saved" : "Save"}
+          </button>
+          {favoriteMessage && <span className="card-save-message">{favoriteMessage}</span>}
+        </div>
 
         <div className="vendor-destination-meta">
           <span>EventHub verified</span>
@@ -151,6 +154,7 @@ function VendorList() {
   const [favoriteVendorIds, setFavoriteVendorIds] = useState([]);
   const [savingFavoriteId, setSavingFavoriteId] = useState(null);
   const [favoriteError, setFavoriteError] = useState("");
+  const [favoriteMessages, setFavoriteMessages] = useState({});
   const savedUser = localStorage.getItem("eventhubUser");
   const user = savedUser ? JSON.parse(savedUser) : null;
 
@@ -259,14 +263,15 @@ function VendorList() {
 
   function handleFavoriteToggle(vendorId) {
     setFavoriteError("");
+    setFavoriteMessages({});
 
     if (!user) {
-      setFavoriteError("Please login as customer to save vendors.");
+      setFavoriteMessages({ [vendorId]: "Login needed" });
       return;
     }
 
     if (user.role !== "customer") {
-      setFavoriteError("Only customers can save favorite vendors.");
+      setFavoriteMessages({ [vendorId]: "Customers only" });
       return;
     }
 
@@ -312,11 +317,14 @@ function VendorList() {
 
           return [...currentIds, vendorId];
         });
+        setFavoriteMessages({
+          [vendorId]: isFavorite ? "Removed" : "Saved",
+        });
         setSavingFavoriteId(null);
       })
       .catch((error) => {
         console.error("Error updating favorite:", error);
-        setFavoriteError(error.message);
+        setFavoriteMessages({ [vendorId]: error.message });
         setSavingFavoriteId(null);
       });
   }
@@ -421,6 +429,7 @@ function VendorList() {
               key={vendor.id}
               isFavorite={favoriteVendorIds.includes(vendor.id)}
               isSavingFavorite={savingFavoriteId === vendor.id}
+              favoriteMessage={favoriteMessages[vendor.id]}
               onFavoriteToggle={handleFavoriteToggle}
             />
           ))}

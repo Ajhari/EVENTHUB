@@ -1,0 +1,284 @@
+@baseUrl = http://localhost:3001
+@customerId = 1
+@vendorUserId = 2
+@vendorId = 1
+@inquiryId = 1
+
+### API home
+GET {{baseUrl}}/
+
+### Health check
+GET {{baseUrl}}/api/health
+
+### Register customer
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "name": "Test Customer",
+  "email": "testcustomer@gmail.com",
+  "password": "123456",
+  "role": "customer"
+}
+
+### Register vendor
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "name": "Test Vendor",
+  "email": "testvendor@gmail.com",
+  "password": "123456",
+  "role": "vendor"
+}
+
+### Login customer
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "testcustomer@gmail.com",
+  "password": "123456"
+}
+
+### Login vendor
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "testvendor@gmail.com",
+  "password": "123456"
+}
+
+### Logout
+POST {{baseUrl}}/api/auth/logout
+
+### Get all vendors
+GET {{baseUrl}}/api/vendors
+
+### Get all vendors with location filter
+GET {{baseUrl}}/api/vendors?location=CHENNAI
+
+### Get all vendors with food type filter
+GET {{baseUrl}}/api/vendors?foodType=VEG
+
+### Get all vendors with event type filter
+GET {{baseUrl}}/api/vendors?eventType=WEDDING
+
+### Get all vendors with available date filter
+GET {{baseUrl}}/api/vendors?availableDate=2026-08-20
+
+### Get all vendors with multiple filters
+GET {{baseUrl}}/api/vendors?location=CHENNAI&foodType=VEG&eventType=WEDDING&availableDate=2026-08-20
+
+### Get one vendor by vendor id
+GET {{baseUrl}}/api/vendors/{{vendorId}}
+
+### Get logged-in vendor profile by user id
+### Login as vendor before running this request.
+GET {{baseUrl}}/api/vendors/user/{{vendorUserId}}
+
+### Create vendor profile
+### Login as vendor before running this request.
+### In Thunder Client, use Body -> Form and add vendor_image as File if needed.
+POST {{baseUrl}}/api/vendors
+Content-Type: multipart/form-data; boundary=EventHubBoundary
+
+--EventHubBoundary
+Content-Disposition: form-data; name="user_id"
+
+{{vendorUserId}}
+--EventHubBoundary
+Content-Disposition: form-data; name="business_name"
+
+HARI EVENTS
+--EventHubBoundary
+Content-Disposition: form-data; name="location"
+
+CHENNAI
+--EventHubBoundary
+Content-Disposition: form-data; name="contact_number"
+
+9876543210
+--EventHubBoundary
+Content-Disposition: form-data; name="description"
+
+BEST EVENT MANAGEMENT SERVICE
+--EventHubBoundary
+Content-Disposition: form-data; name="price_range"
+
+50000-100000
+--EventHubBoundary
+Content-Disposition: form-data; name="food_type"
+
+VEG AND NON-VEG
+--EventHubBoundary
+Content-Disposition: form-data; name="event_type"
+
+WEDDING
+--EventHubBoundary
+Content-Disposition: form-data; name="available_date"
+
+2026-08-20
+--EventHubBoundary--
+
+### Update vendor profile
+### Login as vendor before running this request.
+### In Thunder Client, use Body -> Form and add vendor_image as File if needed.
+PUT {{baseUrl}}/api/vendors/{{vendorId}}
+Content-Type: multipart/form-data; boundary=EventHubBoundary
+
+--EventHubBoundary
+Content-Disposition: form-data; name="business_name"
+
+UPDATED HARI EVENTS
+--EventHubBoundary
+Content-Disposition: form-data; name="location"
+
+CHENNAI
+--EventHubBoundary
+Content-Disposition: form-data; name="contact_number"
+
+9876543210
+--EventHubBoundary
+Content-Disposition: form-data; name="description"
+
+UPDATED EVENT MANAGEMENT SERVICE
+--EventHubBoundary
+Content-Disposition: form-data; name="price_range"
+
+75000-150000
+--EventHubBoundary
+Content-Disposition: form-data; name="food_type"
+
+VEG AND NON-VEG
+--EventHubBoundary
+Content-Disposition: form-data; name="event_type"
+
+WEDDING
+--EventHubBoundary
+Content-Disposition: form-data; name="available_date"
+
+2026-08-25
+--EventHubBoundary--
+
+### Delete vendor image
+### Login as vendor before running this request.
+DELETE {{baseUrl}}/api/vendors/{{vendorId}}/image
+
+### Delete vendor profile
+### Login as vendor before running this request.
+DELETE {{baseUrl}}/api/vendors/{{vendorId}}
+
+### Get customer favorites
+### Login as customer before running this request.
+GET {{baseUrl}}/api/favorites/{{customerId}}
+
+### Check favorite status
+### Login as customer before running this request.
+GET {{baseUrl}}/api/favorites/{{customerId}}/{{vendorId}}
+
+### Add vendor to favorites
+### Login as customer before running this request.
+POST {{baseUrl}}/api/favorites
+Content-Type: application/json
+
+{
+  "customer_id": {{customerId}},
+  "vendor_id": {{vendorId}}
+}
+
+### Remove vendor from favorites
+### Login as customer before running this request.
+DELETE {{baseUrl}}/api/favorites/{{customerId}}/{{vendorId}}
+
+### Add one vendor service date
+### Login as vendor before running this request.
+POST {{baseUrl}}/api/vendor-services
+Content-Type: application/json
+
+{
+  "vendor_id": {{vendorId}},
+  "event_type": "WEDDING",
+  "food_type": "VEG AND NON-VEG",
+  "available_date": "2026-08-20"
+}
+
+### Add vendor service date range
+### Login as vendor before running this request.
+POST {{baseUrl}}/api/vendor-services/range
+Content-Type: application/json
+
+{
+  "vendor_id": {{vendorId}},
+  "event_type": "WEDDING",
+  "food_type": "VEG AND NON-VEG",
+  "start_date": "2026-08-01",
+  "end_date": "2026-08-20"
+}
+
+### Get vendor services
+GET {{baseUrl}}/api/vendor-services/{{vendorId}}
+
+### Get vendor booked dates
+### Login as vendor before running this request.
+GET {{baseUrl}}/api/vendor-booked-dates/{{vendorId}}
+
+### Save vendor booked dates
+### Login as vendor before running this request.
+PUT {{baseUrl}}/api/vendor-booked-dates/{{vendorId}}
+Content-Type: application/json
+
+{
+  "booked_dates": ["2026-08-10", "2026-08-15"]
+}
+
+### Get public vendor availability
+GET {{baseUrl}}/api/vendor-availability/{{vendorId}}
+
+### Send inquiry
+### Login as customer before running this request.
+POST {{baseUrl}}/api/inquiries
+Content-Type: application/json
+
+{
+  "customer_id": {{customerId}},
+  "vendor_id": {{vendorId}},
+  "event_date": "2026-08-20",
+  "message": "I want to know your wedding package details."
+}
+
+### Get vendor inquiries
+### Login as vendor before running this request.
+GET {{baseUrl}}/api/inquiries/vendor/{{vendorId}}
+
+### Get customer inquiries
+### Login as customer before running this request.
+GET {{baseUrl}}/api/inquiries/customer/{{customerId}}
+
+### Update inquiry status
+### Login as vendor before running this request.
+PUT {{baseUrl}}/api/inquiries/{{inquiryId}}/status
+Content-Type: application/json
+
+{
+  "status": "viewed"
+}
+
+### Vendor reply to inquiry
+### Login as vendor before running this request.
+PUT {{baseUrl}}/api/inquiries/{{inquiryId}}/reply
+Content-Type: application/json
+
+{
+  "reply": "Yes, we are available. Please contact us for package details."
+}
+
+### Customer reply to vendor
+### Login as customer before running this request.
+PUT {{baseUrl}}/api/inquiries/{{inquiryId}}/customer-reply
+Content-Type: application/json
+
+{
+  "reply": "Okay, please share your full package."
+}
